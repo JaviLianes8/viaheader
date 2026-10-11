@@ -8,4 +8,6 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.1.0]
 
-- First release.
+- First release: parse and build the HTTP Via header per RFC 9110, with typed hops,
+  an optional protocol name defaulting to HTTP, comment handling, and comma-aware
+  splitting that never breaks inside a comment.
