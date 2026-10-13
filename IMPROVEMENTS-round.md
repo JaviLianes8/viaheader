@@ -13,7 +13,7 @@ Progress:
 - [x] Docs and packaging: README, CHANGELOG, docstrings, metadata, sdist contents
 - [x] Gates: ruff format, ruff check, mypy --strict, pytest
 - [x] Mutation run: removing guarded logic makes the suite fail
-- [ ] Independent review findings fixed with regression tests
+- [x] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
 
 ## Starting point
@@ -103,3 +103,40 @@ Progress:
   were missing tests (a bad character inside a comment, the strict message for a stray
   control, a port after junk in a hand-built bracketed value, a colon-less `via` line,
   tab folding), now added. Second run (56 mutations): none alive.
+- After the review fixes the run was redone with 77 mutations (42 of the first run that
+  still apply, 35 on the new code): two alive, both equivalent (a separate message for
+  a bad character after a backslash, which strict mode never reaches because its
+  character check reports first); that split was removed.
+- The review regression tests were run against the code before the fixes: 31 of them
+  fail there, and the linear-time tests do not finish within 90 seconds.
+
+## Review fixes
+
+An independent review attacked the branch; each finding below is fixed with a test that
+fails on the code before the fix:
+
+- Quadratic time: every unclosed comment was scanned to the end of the line, so a value
+  made of `1 a (,` repeated took 47 s at 72 KB, through `parse`, `has_loop` and
+  `append`. Each line is now indexed once (where every parenthesis closes, where the
+  next invalid character sits), and 256 KB of each hostile pattern parse in well under a
+  second.
+- A port of thousands of digits made `Hop.port` hit the integer conversion limit and
+  crash `has_loop` and the command line. `port` is now `None` above 65535, checked by
+  length before converting, and a proxy name with such a port raises `ViaError`.
+- The command line decoded stdin with the locale; it now reads bytes as latin-1.
+- The command line split lines on vertical tab, form feed, U+0085 and others, so
+  another field could smuggle a `Via` line; only LF ends a line now. It also read past
+  the blank line into the body; now it stops there, and with several responses
+  (`curl -sIL`) uses the last.
+- `parse(build(hops)) == hops` failed for `protocol="http"` or `""`; `Hop` now stores any
+  spelling of HTTP as `HTTP`, and the fuzz test generates those spellings.
+- A `pseudonyms` key with a port never matched, leaking the host it should hide. Keys
+  must be hosts without a port; IPv6 keys and `has_loop` names match any spelling.
+- Docs: `append` keeps received RFC 7230 IPv6 entries (map them to pseudonyms for pure
+  RFC 9110), passes comments with their commas (use `drop_comments=True` before a naive
+  parser), comments above U+00FF are refused, and this file no longer claims `append`
+  keeps a value verbatim. Errors from the command line go to an injectable stream, and
+  a terminal on stdin gives a usage error instead of waiting.
+- Not changed: lower-case `http/1.1` stays accepted in strict mode (RFC 9110 section 7.8
+  compares protocol names case-insensitively); trailing dots in names are not folded;
+  IPvFuture literals stay unread; the Python floor stays at 3.10 as on `main`.

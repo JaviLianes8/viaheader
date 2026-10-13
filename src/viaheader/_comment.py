@@ -26,7 +26,6 @@ class Comments:
     def __init__(self, line: str) -> None:
         self.line = line
         self._close: dict[int, int] = {}
-        self._escaped_bad: set[int] = set()
         bad = [False] * len(line)
         opened: list[int] = []
         pos = 0
@@ -35,7 +34,6 @@ class Comments:
             if char == "\\":
                 if pos + 1 < len(line) and line[pos + 1] not in QUOTABLE:
                     bad[pos + 1] = True
-                    self._escaped_bad.add(pos + 1)
                 pos += 2
                 continue
             if char == "(":
@@ -59,8 +57,6 @@ class Comments:
         limit = len(self.line) if close is None else close
         bad = self._next_bad[opening + 1]
         if bad < limit:
-            if bad in self._escaped_bad:
-                raise Broken(bad, "invalid character after a backslash")
             raise Broken(bad, f"invalid character {self.line[bad]!r} in a comment")
         if close is None:
             raise Broken(opening, "unterminated comment")
