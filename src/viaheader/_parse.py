@@ -1,73 +1,38 @@
-"""Read a Via header value into structured hops."""
+"""Read Via field values into structured hops."""
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from ._model import Hop
+from ._scan import scan_line
 
 
-def parse(header: str) -> list[Hop]:
-    """Parse a Via header value into hops, skipping entries that are not well formed."""
+def parse(value: str | Iterable[str] | None, *, strict: bool = False) -> list[Hop]:
+    """Parse a Via field value, or several field lines given in order, into hops.
+
+    ``None`` (a missing header) gives no hops.
+
+    Each field line is read as its own list, so text in one line never reaches the next.
+    By default an invalid entry is skipped and parsing resumes at a safe comma; with
+    ``strict=True`` anything outside the RFC 9110 grammar raises ``ViaError``.
+    """
     hops: list[Hop] = []
-    for element in _split_elements(header):
-        hop = _parse_element(element)
-        if hop is not None:
-            hops.append(hop)
+    for index, line in enumerate(field_lines(value)):
+        hops.extend(scan_line(line, strict=strict, index=index))
     return hops
 
 
-def _split_elements(header: str) -> list[str]:
-    """Split on commas that sit outside a comment, honouring escaped parentheses."""
-    elements: list[str] = []
-    buffer: list[str] = []
-    depth = 0
-    index = 0
-    length = len(header)
-    while index < length:
-        char = header[index]
-        if char == "\\" and depth > 0 and index + 1 < length:
-            buffer.append(char)
-            buffer.append(header[index + 1])
-            index += 2
-            continue
-        if char == "(":
-            depth += 1
-        elif char == ")" and depth > 0:
-            depth -= 1
-        if char == "," and depth == 0:
-            elements.append("".join(buffer))
-            buffer = []
-        else:
-            buffer.append(char)
-        index += 1
-    elements.append("".join(buffer))
-    return [element.strip() for element in elements if element.strip()]
-
-
-def _parse_element(element: str) -> Hop | None:
-    comment = None
-    opening = element.find("(")
-    if opening != -1:
-        comment = _strip_parentheses(element[opening:])
-        core = element[:opening].strip()
-    else:
-        core = element
-    tokens = core.split()
-    if len(tokens) < 2:
-        return None
-    protocol, version = _split_protocol(tokens[0])
-    return Hop(received_by=tokens[1], version=version, protocol=protocol, comment=comment)
-
-
-def _split_protocol(token: str) -> tuple[str, str]:
-    """A received-protocol is an optional name and a version: HTTP when the name is absent."""
-    if "/" in token:
-        name, _, version = token.partition("/")
-        return (name or "HTTP"), version
-    return "HTTP", token
-
-
-def _strip_parentheses(text: str) -> str | None:
-    text = text.strip()
-    if len(text) >= 2 and text[0] == "(" and text[-1] == ")":
-        return text[1:-1]
-    return None
+def field_lines(value: str | Iterable[str] | None) -> list[str]:
+    """The field lines of a value given as one string, an iterable of strings or None."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        raise TypeError("Via values are str; decode the header bytes as latin-1 first")
+    lines = list(value)
+    for line in lines:
+        if not isinstance(line, str):
+            raise TypeError(f"each Via field line must be a str, not {type(line).__name__}")
+    return lines

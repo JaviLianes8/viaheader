@@ -3,11 +3,11 @@
 Progress:
 - [x] Brainstorm ranked improvements (this file)
 - [x] Pin the ground truth: RFC 9110, RFC 9112, RFC 3986, MDN Via
-- [ ] Grammar-aware scanner: comments with nesting and quoted-pairs, per-line lists, safe resync
-- [ ] Strict mode with `ViaError`: RFC 9110 section 7.6.3 grammar, field value characters
-- [ ] Typed hops: decoded comments, `host` and `port`, HTTP name normalised
-- [ ] Safe builder: token and port checks, comment escaping, no header injection
-- [ ] Forwarding helpers: `append` with pseudonyms and comment removal, `has_loop`
+- [x] Grammar-aware scanner: comments with nesting and quoted-pairs, per-line lists, safe resync
+- [x] Strict mode with `ViaError`: RFC 9110 section 7.6.3 grammar, field value characters
+- [x] Typed hops: decoded comments, `host` and `port`, HTTP name normalised
+- [x] Safe builder: token and port checks, comment escaping, no header injection
+- [x] Forwarding helpers: `append` with pseudonyms and comment removal, `has_loop`
 - [ ] Command line: `python -m viaheader` reads values or a header block, prints JSON
 - [ ] Contracts: RFC and MDN examples from the pinned files, round-trip fuzz, README examples, installed wheel
 - [ ] Docs and packaging: README, CHANGELOG, docstrings, metadata, sdist contents
