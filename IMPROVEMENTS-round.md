@@ -8,9 +8,9 @@ Progress:
 - [x] Typed hops: decoded comments, `host` and `port`, HTTP name normalised
 - [x] Safe builder: token and port checks, comment escaping, no header injection
 - [x] Forwarding helpers: `append` with pseudonyms and comment removal, `has_loop`
-- [ ] Command line: `python -m viaheader` reads values or a header block, prints JSON
+- [x] Command line: `python -m viaheader` reads values or a header block, prints JSON
 - [ ] Contracts: RFC and MDN examples from the pinned files, round-trip fuzz, README examples, installed wheel
-- [ ] Docs and packaging: README, CHANGELOG, docstrings, metadata, sdist contents
+- [x] Docs and packaging: README, CHANGELOG, docstrings, metadata, sdist contents
 - [ ] Gates: ruff format, ruff check, mypy --strict, pytest
 - [ ] Mutation run: removing guarded logic makes the suite fail
 - [ ] Independent review findings fixed with regression tests
