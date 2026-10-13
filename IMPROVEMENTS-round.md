@@ -9,10 +9,10 @@ Progress:
 - [x] Safe builder: token and port checks, comment escaping, no header injection
 - [x] Forwarding helpers: `append` with pseudonyms and comment removal, `has_loop`
 - [x] Command line: `python -m viaheader` reads values or a header block, prints JSON
-- [ ] Contracts: RFC and MDN examples from the pinned files, round-trip fuzz, README examples, installed wheel
+- [x] Contracts: RFC and MDN examples from the pinned files, round-trip fuzz, README examples, installed wheel
 - [x] Docs and packaging: README, CHANGELOG, docstrings, metadata, sdist contents
-- [ ] Gates: ruff format, ruff check, mypy --strict, pytest
-- [ ] Mutation run: removing guarded logic makes the suite fail
+- [x] Gates: ruff format, ruff check, mypy --strict, pytest
+- [x] Mutation run: removing guarded logic makes the suite fail
 - [ ] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
 
@@ -84,3 +84,22 @@ Progress:
   library cannot check: same organisation, pseudonyms already applied).
 - Default ports per protocol: the RFC only says a recipient MAY assume one.
 - Framework middleware: every framework exposes headers as strings, which is the input.
+
+## Verification
+
+- Gates on CPython 3.13.2, in a fresh clone of the pushed branch with its own venv:
+  `ruff format --check .`, `ruff check .`, `mypy --strict src` (and `src tests`) and
+  `pytest`. The fetch script downloaded the four reference files and checked them
+  against the manifest. With `VIAHEADER_E2E=1` the installed-wheel test builds the wheel
+  and sdist, checks their contents (no planning notes, no fetched files, the manifest and
+  fetch script present), installs the wheel in a fresh venv and drives the API, the
+  `python -m viaheader` module and the `viaheader` command from an empty folder.
+- Guarded logic was changed one piece at a time, with no bytecode written, caches purged
+  before every run, a two-minute timeout per mutant and a green baseline before and
+  after. First run (58 mutations): nine alive. Four were equivalent (a strict
+  pre-check that only shaped the message, a ctext set the earlier branches already
+  narrowed, a resume offset kept apart from the error offset): the code was simplified
+  so lenient parsing resumes at the offset where the entry broke, as documented. Five
+  were missing tests (a bad character inside a comment, the strict message for a stray
+  control, a port after junk in a hand-built bracketed value, a colon-less `via` line,
+  tab folding), now added. Second run (56 mutations): none alive.
