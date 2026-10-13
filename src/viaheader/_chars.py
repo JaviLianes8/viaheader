@@ -7,10 +7,9 @@ import string
 TCHAR = frozenset("!#$%&'*+-.^_`|~" + string.digits + string.ascii_letters)
 DIGITS = frozenset(string.digits)
 WHITESPACE = frozenset(" \t")
-# What may follow a backslash (quoted-pair): HTAB, SP, VCHAR and obs-text.
+# What may follow a backslash (quoted-pair): HTAB, SP, VCHAR and obs-text. ctext is the
+# same set without the three characters a comment gives a meaning to.
 QUOTABLE = frozenset(chr(code) for code in (0x09, *range(0x20, 0x7F), *range(0x80, 0x100)))
-# ctext is every quotable character except the three a comment gives a meaning to.
-CTEXT = QUOTABLE - frozenset("()\\")
 
 
 def is_token(text: str) -> bool:

@@ -114,6 +114,11 @@ def test_an_invalid_entry_is_skipped_and_the_next_one_read(entry: str) -> None:
     assert parse(f"1.0 x, {entry}, 1.1 next") == [Hop("x", "1.0"), Hop("next", "1.1")]
 
 
+@pytest.mark.parametrize("bad", ["\x01", "\\\x01", chr(0x100)])
+def test_a_bad_character_in_a_comment_resumes_after_that_character(bad: str) -> None:
+    assert parse(f"1.0 a (x, 1.1 b, {bad}), 1.1 c") == [Hop("c", "1.1")]
+
+
 def test_an_unclosed_comment_cannot_swallow_the_entries_after_it() -> None:
     assert parse("1.0 client (, 1.1 edge") == [Hop("edge", "1.1")]
 

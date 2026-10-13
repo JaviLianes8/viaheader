@@ -41,6 +41,7 @@ def test_valid_values_pass(value: str) -> None:
         ("/1.1 p", 0, "protocol version"),
         ("HTTP/ p", 5, "after '/'"),
         ("1.1 a, 1.1 b c", 13, "unexpected 'c'"),
+        ("1.1 a, \x01", 7, "invalid character '\\x01'"),
         ("1.1 a\r\n", 5, "'\\r'"),
         ("1.1 a (\x00)", 7, "'\\x00'"),
         ("1.1 a (" + chr(0x100) + ")", 7, repr(chr(0x100))),

@@ -60,6 +60,10 @@ def test_via_lines_joins_folded_lines_and_ignores_other_fields() -> None:
     assert via_lines(BLOCK) == ["1.1 varnish (Varnish/7.4), 1.1 edge", "2 cdn:443"]
 
 
+def test_a_tab_folds_a_line_and_a_line_without_a_colon_is_no_field() -> None:
+    assert via_lines("via\n 1.1 x\nVia: 1.1 a,\n\t1.1 b\n") == ["1.1 a, 1.1 b"]
+
+
 def test_a_folded_line_after_another_field_is_ignored() -> None:
     assert via_lines("Server: x\n  1.1 nope\nVia: 1.1 a\n") == ["1.1 a"]
 

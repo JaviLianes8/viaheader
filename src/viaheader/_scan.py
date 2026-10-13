@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ipaddress
 
-from ._chars import CTEXT, DIGITS, QUOTABLE, TCHAR, WHITESPACE, first_invalid
+from ._chars import DIGITS, QUOTABLE, TCHAR, WHITESPACE, first_invalid
 from ._errors import ViaError
 from ._model import Hop
 
@@ -14,12 +14,11 @@ _IP_LITERAL = frozenset("0123456789abcdefABCDEF:.")
 
 
 class _Broken(Exception):
-    """An invalid entry: where it broke, and where to look for the next comma."""
+    """An invalid entry and the offset where it broke."""
 
-    def __init__(self, at: int, resume: int, reason: str) -> None:
+    def __init__(self, at: int, reason: str) -> None:
         super().__init__(reason)
         self.at = at
-        self.resume = resume
         self.reason = reason
 
 
@@ -50,7 +49,7 @@ def scan_line(line: str, *, strict: bool, index: int) -> list[Hop]:
         except _Broken as broken:
             if strict:
                 raise ViaError(broken.reason, line=index, position=broken.at) from None
-            comma = line.find(",", broken.resume)
+            comma = line.find(",", broken.at)
             if comma == -1:
                 return hops
             pos = comma
@@ -67,17 +66,17 @@ def _entry(line: str, pos: int, strict: bool) -> tuple[Hop, int]:
             protocol = name
     gap = _skip_whitespace(line, pos)
     if gap == pos:
-        raise _Broken(pos, pos, "expected whitespace after the received-protocol")
+        raise _Broken(pos, "expected whitespace after the received-protocol")
     received_by, pos = _received_by(line, gap, strict)
     gap = _skip_whitespace(line, pos)
     comment = None
     if gap < len(line) and line[gap] == "(":
         if strict and gap == pos:
-            raise _Broken(pos, pos, "expected whitespace before the comment")
+            raise _Broken(pos, "expected whitespace before the comment")
         comment, pos = _comment(line, gap)
         gap = _skip_whitespace(line, pos)
     if gap < len(line) and line[gap] != ",":
-        raise _Broken(gap, gap, f"unexpected {line[gap]!r} after the entry")
+        raise _Broken(gap, f"unexpected {line[gap]!r} after the entry")
     return Hop(received_by, version, protocol, comment), gap
 
 
@@ -86,7 +85,7 @@ def _token(line: str, pos: int, what: str) -> tuple[str, int]:
     while end < len(line) and line[end] in TCHAR:
         end += 1
     if end == pos:
-        raise _Broken(pos, pos, f"expected {what}")
+        raise _Broken(pos, f"expected {what}")
     return line[pos:end], end
 
 
@@ -98,7 +97,7 @@ def _received_by(line: str, pos: int, strict: bool) -> tuple[str, int]:
         while end < len(line) and line[end] in _IP_LITERAL:
             end += 1
         if end >= len(line) or line[end] != "]" or not _is_ipv6(line[pos + 1 : end]):
-            raise _Broken(pos, pos, "invalid IP literal")
+            raise _Broken(pos, "invalid IP literal")
         pos = end + 1
     else:
         _, pos = _token(line, pos, "a received-by host or pseudonym")
@@ -128,7 +127,7 @@ def _comment(line: str, pos: int) -> tuple[str, int]:
             if pos + 1 >= len(line):
                 break
             if line[pos + 1] not in QUOTABLE:
-                raise _Broken(pos + 1, opening, "invalid character after a backslash")
+                raise _Broken(pos + 1, "invalid character after a backslash")
             text.append(line[pos + 1])
             pos += 2
             continue
@@ -141,11 +140,12 @@ def _comment(line: str, pos: int) -> tuple[str, int]:
             depth -= 1
             if depth == 0:
                 return "".join(text), pos + 1
-        elif char not in CTEXT:
-            raise _Broken(pos, opening, f"invalid character {char!r} in a comment")
+        elif char not in QUOTABLE:
+            # The three characters a comment gives a meaning to are handled above.
+            raise _Broken(pos, f"invalid character {char!r} in a comment")
         text.append(char)
         pos += 1
-    raise _Broken(opening, opening, "unterminated comment")
+    raise _Broken(opening, "unterminated comment")
 
 
 def _skip_whitespace(line: str, pos: int) -> int:

@@ -101,5 +101,6 @@ def test_build_errors_have_no_position() -> None:
 def test_hop_host_and_port_for_hand_built_values() -> None:
     assert (Hop("[::1", "1").host, Hop("[::1", "1").port) == ("[::1", None)
     assert (Hop("a:b", "1").host, Hop("a:b", "1").port) == ("a", None)
-    assert Hop("a:\u0663", "1").port is None
+    assert Hop("a:" + chr(0x663), "1").port is None
+    assert Hop("[::1]x80", "1").port is None
     assert (Hop("[::1]:9", "1").host, Hop("[::1]:9", "1").port) == ("[::1]", 9)
