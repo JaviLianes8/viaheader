@@ -16,7 +16,7 @@ All notable changes to this project are documented here. The format follows
 - `append(existing, hop)` returns the value to forward, with `pseudonyms` to hide hosts
   and `drop_comments` to remove received comments.
 - `has_loop(value, name, *names)` finds this proxy's own names in the chain.
-- `Hop.host` and `Hop.port`.
+- `Hop.host` and `Hop.port` (`None` when absent or above 65535).
 - `python -m viaheader` and the `viaheader` command print the hops of values or of the
   Via lines of a header block as JSON.
 
@@ -27,10 +27,11 @@ All notable changes to this project are documented here. The format follows
 - Text after the received-by or after the comment makes the entry invalid instead of
   being ignored.
 - Comments are decoded: quoted-pairs are resolved and nested comments kept as text.
-- The `HTTP` protocol name is recognised whatever its case.
+- `Hop` stores any spelling of the `HTTP` protocol name, and the empty string, as `HTTP`.
 - `build` validates protocol, version and received-by, refuses control characters, and
   escapes backslashes and unpaired parentheses in comments.
 - CR, LF and NUL in a value read as spaces in lenient mode.
+- Parsing takes linear time, however many unclosed comments a value holds.
 
 ## [0.1.0]
 

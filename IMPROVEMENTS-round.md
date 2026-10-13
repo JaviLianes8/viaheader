@@ -66,8 +66,8 @@ Progress:
    `port` split the received-by, `HTTP` is normalised whatever its case.
 4. **Safe builder.** `build` checks every token and port, refuses CTLs, escapes
    backslashes and unbalanced parentheses in comments, so `parse(build(hops)) == hops`.
-5. **Forwarding helpers.** `append(existing, hop)` keeps a valid value verbatim and
-   otherwise rebuilds it from the readable hops, with options to replace hosts by
+5. **Forwarding helpers.** `append(existing, hop)` rebuilds the received value from
+   its readable hops and adds the new one, with options to replace hosts by
    pseudonyms (7.6.3, 17.12) and to drop comments. `has_loop(value, name)` checks the
    received-by hosts, case-insensitive, with or without a port.
 6. **Command line.** `python -m viaheader` prints the hops of the values given, or of the
