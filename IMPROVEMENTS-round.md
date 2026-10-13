@@ -87,7 +87,8 @@ Progress:
 
 ## Verification
 
-- Gates on CPython 3.13.2, in a fresh clone of the pushed branch with its own venv:
+- Gates on CPython 3.13.2 (this PC) and 3.14.2 (a second Windows machine), each in a
+  fresh clone of the pushed branch with its own venv:
   `ruff format --check .`, `ruff check .`, `mypy --strict src` (and `src tests`) and
   `pytest`. The fetch script downloaded the four reference files and checked them
   against the manifest. With `VIAHEADER_E2E=1` the installed-wheel test builds the wheel
