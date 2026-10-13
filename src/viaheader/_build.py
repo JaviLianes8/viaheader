@@ -51,11 +51,8 @@ def valid_received_by(text: str, *, legacy: bool) -> bool:
             ipaddress.IPv6Address(literal)
         except ValueError:
             return False
-        return (
-            literal.isascii()
-            and "%" not in literal
-            and (not rest or (rest[0] == ":" and is_port(rest[1:])))
-        )
+        # ipaddress accepts a zone ("%eth0"), which an RFC 7230 IP-literal cannot hold.
+        return "%" not in literal and (not rest or (rest[0] == ":" and is_port(rest[1:])))
     host, colon, port = text.partition(":")
     return is_token(host) and (not colon or is_port(port))
 

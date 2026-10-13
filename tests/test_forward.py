@@ -113,7 +113,9 @@ def test_has_loop_reads_a_legacy_ipv6_entry() -> None:
     assert has_loop("1.1 [2001:DB8::1]:80", "[2001:db8::1]")
 
 
-@pytest.mark.parametrize("name", ["", "a b", "edge:x", "edge:80:1", "[nope]", "a,b"])
+@pytest.mark.parametrize(
+    "name", ["", "a b", "edge:x", "edge:80:1", "[nope]", "a,b", "[fe80::1%eth0]", "[::1]x"]
+)
 def test_an_invalid_name_is_refused(name: str) -> None:
     with pytest.raises(ViaError, match="proxy name"):
         has_loop("1.1 edge", name)
