@@ -27,7 +27,7 @@ def _comment(rng: random.Random) -> str | None:
 
 def _hop(rng: random.Random) -> Hop:
     received_by = rng.choice(["edge", "p.example.net", "fw1", "lb"]) + rng.choice(["", ":80", ":"])
-    protocol = rng.choice(["HTTP", "FTP", "h2c"])
+    protocol = rng.choice(["HTTP", "http", "", "FTP", "h2c"])
     return Hop(received_by, rng.choice(["1.0", "1.1", "2"]), protocol, _comment(rng))
 
 

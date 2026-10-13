@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 from collections.abc import Iterable, Mapping
 from dataclasses import replace
 
@@ -23,16 +24,18 @@ def append(
 
     The received value is parsed leniently and written back clean, so an entry that
     cannot be read is dropped instead of being passed on, and nothing it holds can
-    swallow or forge the entry added here. ``pseudonyms`` maps received-by hosts (case
-    is ignored) to the pseudonym that replaces the whole received-by, as RFC 9110 asks
-    of a proxy that hides hosts behind a firewall. ``drop_comments`` removes received
+    swallow or forge the entry added here. Received entries in the RFC 7230 IP-literal
+    form are kept; map them in ``pseudonyms`` to forward pure RFC 9110. ``pseudonyms``
+    maps received-by hosts, without a port and matched without regard to case, to the
+    pseudonym that replaces the whole received-by, as RFC 9110 asks of a proxy that
+    hides hosts behind a firewall. ``drop_comments`` removes received
     comments. ``hop`` itself must be valid RFC 9110, or ``ViaError`` is raised.
     """
     own = render(hop, legacy=False)
     renames = _renames(pseudonyms)
     entries: list[str] = []
     for received in parse(existing):
-        pseudonym = renames.get(received.host.lower())
+        pseudonym = renames.get(_host_key(received.host))
         if pseudonym is not None:
             received = replace(received, received_by=pseudonym)
         if drop_comments:
@@ -49,7 +52,9 @@ def _renames(pseudonyms: Mapping[str, str] | None) -> dict[str, str]:
             raise TypeError("pseudonyms maps str hosts to str pseudonyms")
         if not is_token(pseudonym):
             raise ViaError(f"pseudonym {pseudonym!r} is not a token")
-        renames[host.lower()] = pseudonym
+        if not valid_received_by(host, legacy=True) or Hop(host, "1.1").host != host:
+            raise ViaError(f"pseudonyms key {host!r} is not a host without a port")
+        renames[_host_key(host)] = pseudonym
     return renames
 
 
@@ -58,12 +63,13 @@ def has_loop(value: str | Iterable[str] | None, name: str, *names: str) -> bool:
 
     A name is a host or pseudonym, matched without regard to case, with an optional
     ``:port``: without a port it matches the host on any port, with one it matches only
-    that port. The value is parsed leniently, so the entries proxies appended are found
-    whatever a client wrote in front of them.
+    that port. IPv6 literals match in any of their spellings. The value is parsed
+    leniently, so the entries proxies appended are found whatever a client wrote in
+    front of them.
     """
     wanted = [_split_name(each) for each in (name, *names)]
     for hop in parse(value):
-        host = hop.host.lower()
+        host = _host_key(hop.host)
         for wanted_host, wanted_port in wanted:
             if host == wanted_host and (wanted_port is None or hop.port == wanted_port):
                 return True
@@ -76,4 +82,13 @@ def _split_name(name: str) -> tuple[str, int | None]:
     if not valid_received_by(name, legacy=True):
         raise ViaError(f"proxy name {name!r} is not a host or pseudonym with an optional port")
     probe = Hop(name, "1.1")
-    return probe.host.lower(), probe.port
+    if probe.port is None and len(name) > len(probe.host) + 1:
+        raise ViaError(f"proxy name {name!r} has a port above 65535")
+    return _host_key(probe.host), probe.port
+
+
+def _host_key(host: str) -> str:
+    """A host as compared: case folded, an IPv6 literal in its compressed form."""
+    if host.startswith("["):
+        return f"[{ipaddress.IPv6Address(host[1:-1]).compressed}]"
+    return host.lower()

@@ -124,3 +124,17 @@ def test_an_invalid_name_is_refused(name: str) -> None:
 def test_a_name_that_is_not_a_string_is_a_type_error() -> None:
     with pytest.raises(TypeError, match="str"):
         has_loop("1.1 edge", 5)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("key", ["a:80", "a:", "a b", "[::1]:80", ""])
+def test_a_pseudonyms_key_must_be_a_host_without_a_port(key: str) -> None:
+    with pytest.raises(ViaError, match="pseudonyms key"):
+        append("1.1 a:80", ME, pseudonyms={key: "x"})
+
+
+def test_a_pseudonyms_key_matches_any_spelling_of_an_ipv6_literal() -> None:
+    assert append("1.1 [0:0::1]:80", ME, pseudonyms={"[::0001]": "lo"}) == "1.1 lo, 1.1 edge"
+
+
+def test_has_loop_matches_any_spelling_of_an_ipv6_literal() -> None:
+    assert has_loop("1.1 [2001:db8:0::1]:80", "[2001:DB8::0:1]:80")

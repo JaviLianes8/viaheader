@@ -4,22 +4,15 @@ from __future__ import annotations
 
 import ipaddress
 
-from ._chars import DIGITS, QUOTABLE, TCHAR, WHITESPACE, first_invalid
+from ._chars import DIGITS, TCHAR, WHITESPACE, first_invalid
+from ._comment import Broken as _Broken
+from ._comment import Comments
 from ._errors import ViaError
 from ._model import Hop
 
 # RFC 9110 section 5.5: a recipient may replace CR, LF and NUL with SP instead of rejecting.
 _BLANKED = str.maketrans({"\r": " ", "\n": " ", "\0": " "})
 _IP_LITERAL = frozenset("0123456789abcdefABCDEF:.")
-
-
-class _Broken(Exception):
-    """An invalid entry and the offset where it broke."""
-
-    def __init__(self, at: int, reason: str) -> None:
-        super().__init__(reason)
-        self.at = at
-        self.reason = reason
 
 
 def scan_line(line: str, *, strict: bool, index: int) -> list[Hop]:
@@ -35,6 +28,7 @@ def scan_line(line: str, *, strict: bool, index: int) -> list[Hop]:
             raise ViaError(f"invalid character {line[bad]!r}", line=index, position=bad)
     else:
         line = line.translate(_BLANKED)
+    comments = Comments(line)
     hops: list[Hop] = []
     pos = 0
     while True:
@@ -45,7 +39,7 @@ def scan_line(line: str, *, strict: bool, index: int) -> list[Hop]:
             pos += 1
             continue
         try:
-            hop, pos = _entry(line, pos, strict)
+            hop, pos = _entry(comments, pos, strict)
         except _Broken as broken:
             if strict:
                 raise ViaError(broken.reason, line=index, position=broken.at) from None
@@ -57,13 +51,14 @@ def scan_line(line: str, *, strict: bool, index: int) -> list[Hop]:
         hops.append(hop)
 
 
-def _entry(line: str, pos: int, strict: bool) -> tuple[Hop, int]:
+def _entry(comments: Comments, pos: int, strict: bool) -> tuple[Hop, int]:
+    line = comments.line
     name, pos = _token(line, pos, "a protocol version")
     protocol, version = "HTTP", name
     if pos < len(line) and line[pos] == "/":
+        # Hop stores any spelling of HTTP as "HTTP".
+        protocol = name
         version, pos = _token(line, pos + 1, "a protocol version after '/'")
-        if name.upper() != "HTTP":
-            protocol = name
     gap = _skip_whitespace(line, pos)
     if gap == pos:
         raise _Broken(pos, "expected whitespace after the received-protocol")
@@ -73,7 +68,7 @@ def _entry(line: str, pos: int, strict: bool) -> tuple[Hop, int]:
     if gap < len(line) and line[gap] == "(":
         if strict and gap == pos:
             raise _Broken(pos, "expected whitespace before the comment")
-        comment, pos = _comment(line, gap)
+        comment, pos = comments.read(gap)
         gap = _skip_whitespace(line, pos)
     if gap < len(line) and line[gap] != ",":
         raise _Broken(gap, f"unexpected {line[gap]!r} after the entry")
@@ -114,38 +109,6 @@ def _is_ipv6(text: str) -> bool:
     except ValueError:
         return False
     return True
-
-
-def _comment(line: str, pos: int) -> tuple[str, int]:
-    """Read a comment starting at its "(": nested comments stay in the text, escapes go."""
-    opening = pos
-    depth = 0
-    text: list[str] = []
-    while pos < len(line):
-        char = line[pos]
-        if char == "\\":
-            if pos + 1 >= len(line):
-                break
-            if line[pos + 1] not in QUOTABLE:
-                raise _Broken(pos + 1, "invalid character after a backslash")
-            text.append(line[pos + 1])
-            pos += 2
-            continue
-        if char == "(":
-            depth += 1
-            if depth == 1:
-                pos += 1
-                continue
-        elif char == ")":
-            depth -= 1
-            if depth == 0:
-                return "".join(text), pos + 1
-        elif char not in QUOTABLE:
-            # The three characters a comment gives a meaning to are handled above.
-            raise _Broken(pos, f"invalid character {char!r} in a comment")
-        text.append(char)
-        pos += 1
-    raise _Broken(opening, "unterminated comment")
 
 
 def _skip_whitespace(line: str, pos: int) -> int:

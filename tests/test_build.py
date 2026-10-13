@@ -17,6 +17,13 @@ def test_any_spelling_of_http_is_omitted(protocol: str) -> None:
     assert build([Hop("p", "2", protocol=protocol)]) == "2 p"
 
 
+@pytest.mark.parametrize("protocol", ["http", "Http", ""])
+def test_any_spelling_of_http_round_trips(protocol: str) -> None:
+    hop = Hop("p", "1.1", protocol=protocol)
+    assert hop.protocol == "HTTP" and hop == Hop("p", "1.1")
+    assert parse(build([hop]), strict=True) == [hop]
+
+
 def test_no_hops_build_an_empty_value() -> None:
     assert build([]) == ""
 

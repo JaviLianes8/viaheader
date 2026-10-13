@@ -29,7 +29,7 @@ def render(hop: Hop, *, legacy: bool) -> str:
             raise TypeError(f"Hop.{field} must be a str")
     if not is_token(hop.version):
         raise ViaError(f"protocol version {hop.version!r} is not a token")
-    if hop.protocol == "" or hop.protocol.upper() == "HTTP":
+    if hop.protocol == "HTTP":
         parts = [hop.version]
     elif is_token(hop.protocol):
         parts = [f"{hop.protocol}/{hop.version}"]
