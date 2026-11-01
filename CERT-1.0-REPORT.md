@@ -272,7 +272,7 @@ and keep all temporary files under the allocated review directory.
 ## QA lenses: round 3 corrections
 
 Reviewed head: `07e6091657795250d7f7b3238fa7fdf142e20291`.
-Fix commit: recorded after the correction commit.
+Fix commit: [`5b79529de8ec58fb0140211f6665cf0aa8815f24`](https://github.com/JaviLianes8/viaheader/commit/5b79529de8ec58fb0140211f6665cf0aa8815f24).
 Report: `lens-e-r3/REPORT.md` under the certification scratch root.
 The independent review resolved E-BLOCK-01 and killed nine of ten mutations, but
 reported FAIL because M06 survived. Same-lens re-verification remains pending.
