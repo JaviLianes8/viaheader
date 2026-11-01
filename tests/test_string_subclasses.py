@@ -93,3 +93,9 @@ def test_inert_subclasses_remain_accepted() -> None:
 
     hop = Hop(Text("edge"), Text("1.1"), Text("http"), Text("\t"))
     assert parse(Text(build([hop])), strict=True) == [hop]
+
+
+@pytest.mark.parametrize("name", ["edge", "edge:"])
+def test_subclass_proxy_names_without_a_port_use_underlying_length(name: str) -> None:
+    assert has_loop("1.1 edge:443", Long(name))
+    assert not has_loop("1.1 other:443", Long(name))

@@ -1,6 +1,6 @@
 # viaheader 1.0.0 certification report
 
-Preparation and QA round 1 corrections recorded on 2026-11-01.
+Preparation and QA rounds 1 and 2 corrections recorded on 2026-11-01.
 Independent re-review, merge and publication remain pending.
 
 Progress:
@@ -14,6 +14,7 @@ Progress:
 - [x] Four gates, plus strict typing of tests (item 15)
 - [ ] Independent reviewer (item 16)
 - [x] QA round 1 corrections and regression checks
+- [x] QA round 2 workspace correction and supplemental contract checks
 - [ ] Five independent QA PASS verdicts (item 19)
 - [x] PR #3 and guard CLEAN; merge and publication remain pending (item 17)
 
@@ -26,7 +27,7 @@ Progress:
 | 3 | PASS: all six names and both Hop properties have executed doctests; README and GUIDE run |
 | 4 | PASS: `mypy --strict src tests`, runtime annotations, installed consumer, shipped `py.typed` |
 | 5 | PASS: typed errors and positions; rejected values omitted, type names bounded |
-| 6 | PASS: 308 tests including package, CLI, failure paths, values and documentation |
+| 6 | PASS: 310 tests including package, CLI, failure paths, values and documentation |
 | 7 | PASS: four sources fetched live, hashed and used to derive examples and grammar checks |
 | 8 | PASS: fresh wheel installation, both CLI entry points, real pipe, in-place PyPI upgrade |
 | 9 | PASS: four seeded properties, bounded grammar oracle, hostile-size and nesting tests |
@@ -38,8 +39,8 @@ Progress:
 | 15 | PASS: four commands each exit 0 independently; full opt-in suite has no skips |
 | 16 | PENDING: independent review has not run |
 | 17 | READY: PR #3 from `release/1.0.0`, guard CLEAN; merge and publication pending |
-| 18 | PASS: 28 preparation mutations and 23 correction-round mutations killed |
-| 19 | Round 1: a FAIL, c FAIL, e BLOCKED; corrections below await independent re-review |
+| 18 | PASS: 28 preparation mutations, 23 round 1 mutations and 12 round 2 mutations killed |
+| 19 | Round 1: a FAIL, c FAIL, e BLOCKED; round 2: e workspace FAIL, corrected below; independent re-review pending |
 
 ## Preparation evidence
 
@@ -191,6 +192,81 @@ E-BLOCK-01 handoff: a new empty directory is reserved at
 Its `src` destination is absent and ready for a fresh clone of the pushed correction head.
 The independent mutation round and same-lens re-verification remain with the release
 review; no pre-existing mutation workspace was moved, reset, deleted or reused.
+
+## QA lenses: round 2 corrections
+
+Reviewed head: `c33100372732668d8c43dbf43bdc22717cd4c6e5`.
+Fix commit: recorded after committing this correction.
+Report: `lens-e-r2/REPORT.md` under the certification scratch root.
+The independent verdict was FAIL because its clone destination was already occupied;
+it ran no tests or mutations. Independent same-lens re-verification remains pending.
+
+| Finding | Correction |
+| --- | --- |
+| E-BLOCK-01 | Confirmed the existing clone has a modified `_headers.py`; left it untouched. Cloned the reviewed head into a newly allocated directory, reran contracts and mutations, and assigned a separate unused review destination with a collision fallback below. |
+
+Supplemental evidence root:
+`C:/lianes8-build/codex-pylib/scratch/viaheader-cert/fix-r2-1ce9ea3b58e54516aaa2ef119e7c2783/`.
+The fresh clone started clean at the reviewed head. Twelve mutations ran serially,
+one at a time, with bytecode disabled, a 300 s per-test timeout, and a 600 s run limit.
+Original source hashes were checked after every restoration. These checks supplement
+the correction; they do not constitute an independent lens-e verdict.
+
+R2-10 initially survived both its targeted tests and the full suite. Two hand-written
+contracts now cover string-subclass proxy names without a port or with an empty port.
+Both failed with normalization removed and passed with the unchanged implementation.
+There is no library behavior or API change, so no CHANGELOG entry is needed.
+All twelve mutations were then caught by test failures, with no collection errors or
+timeouts. Baseline and restored suites passed 308 tests with the two opt-in e2e tests
+skipped. The release checkout passed all 310 tests with both e2e options enabled.
+
+| Id | Mutation | Contract that failed (all KILLED after the added coverage) |
+| --- | --- | --- |
+| R2-01 | Decode header bytes as UTF-8 | `test_stdin_bytes_are_read_as_latin_1` |
+| R2-02 | Keep fields from earlier responses | `test_the_last_response_of_a_redirect_chain_is_used` |
+| R2-03 | Match header names case sensitively | `test_stdin_bytes_are_read_as_latin_1` |
+| R2-04 | Discard folded Via continuations | `test_streaming_retains_last_response_and_ignores_forged_body_fields` |
+| R2-05 | Read the whole remaining body for lookahead | `test_body_size_does_not_control_cli_memory` |
+| R2-06 | Trust methods on single string subclasses | `test_parse_uses_underlying_field_line` |
+| R2-07 | Trust methods on iterable string subclasses | `test_parse_uses_underlying_field_line` |
+| R2-08 | Retain overridden methods in Hop fields | `test_serialization_rejects_hidden_injection` |
+| R2-09 | Trust pseudonym subclass methods | `test_invalid_subclass_pseudonym_is_rejected_even_when_unused` |
+| R2-10 | Trust proxy-name subclass methods | `test_subclass_proxy_names_without_a_port_use_underlying_length` |
+| R2-11 | Reject the maximum port | `test_ports_are_tcp_port_numbers` |
+| R2-12 | Shift error field-line indices | `test_invalid_values_raise_with_the_offset` |
+
+Evidence files: `mutation-definitions.json`, `mutation-results.json`, `source-hashes.json`,
+`R2-10-full.log`, `R2-10-regression-red.log`, and `verified-*.log` / `verified-*.xml`.
+Format, lint, strict source typing and full pytest each exited 0 before committing.
+Pytest temporary directories and build temporary files were confined to this evidence root.
+
+### Independent lens-e handoff
+
+Assigned unused destination:
+`C:/lianes8-build/codex-pylib/scratch/viaheader-cert/lens-e-r2-independent-0df6f587b47148c89d3586a117730362/src`.
+Neither this directory nor its parent was created by the correction checks.
+The previously assigned `lens-e-r2/src` is retired from this handoff.
+If the new destination is occupied when the review starts, allocate a fresh GUID-suffixed
+directory under the same scratch root. Do not reuse, move, reset or delete existing work.
+This replacement allocation is part of the assignment, so a collision does not block review.
+
+```powershell
+$scratch = 'C:/lianes8-build/codex-pylib/scratch/viaheader-cert'
+$review = "$scratch/lens-e-r2-independent-0df6f587b47148c89d3586a117730362"
+while (Test-Path -LiteralPath $review) {
+    $review = "$scratch/lens-e-r2-independent-$([guid]::NewGuid().ToString('N'))"
+}
+New-Item -ItemType Directory -Path $review -ErrorAction Stop | Out-Null
+git clone --branch release/1.0.0 https://github.com/JaviLianes8/viaheader "$review/src"
+if ($LASTEXITCODE -ne 0) { throw 'Fresh review clone failed' }
+git -C "$review/src" rev-parse HEAD
+git -C "$review/src" status --porcelain
+```
+
+Verify the clone is clean and matches the pushed correction head before starting.
+Record the actual workspace in the independent report. Keep its mutation definitions
+independent of the supplemental table, run at least ten probes, use 300 s per test,
+and keep all temporary files under the allocated review directory.
 
 ## Disputed findings
 
