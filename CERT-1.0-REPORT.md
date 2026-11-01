@@ -1,6 +1,6 @@
 # viaheader 1.0.0 certification report
 
-Preparation and QA rounds 1, 2 and 3 corrections recorded on 2026-11-01.
+Preparation and QA rounds 1 to 4 corrections recorded on 2026-11-01.
 Independent re-review, merge and publication remain pending.
 
 Progress:
@@ -16,6 +16,7 @@ Progress:
 - [x] QA round 1 corrections and regression checks
 - [x] QA round 2 workspace correction and supplemental contract checks
 - [x] QA round 3 folded-comment contract and mutation verification
+- [x] QA round 4 whitespace and continuation-association contracts and mutations
 - [ ] Five independent QA PASS verdicts (item 19)
 - [x] PR #3 and guard CLEAN; merge and publication remain pending (item 17)
 
@@ -28,7 +29,7 @@ Progress:
 | 3 | PASS: all six names and both Hop properties have executed doctests; README and GUIDE run |
 | 4 | PASS: `mypy --strict src tests`, runtime annotations, installed consumer, shipped `py.typed` |
 | 5 | PASS: typed errors and positions; rejected values omitted, type names bounded |
-| 6 | PASS: 311 tests including package, CLI, failure paths, values and documentation |
+| 6 | PASS: 315 tests including package, CLI, failure paths, values and documentation |
 | 7 | PASS: four sources fetched live, hashed and used to derive examples and grammar checks |
 | 8 | PASS: fresh wheel installation, both CLI entry points, real pipe, in-place PyPI upgrade |
 | 9 | PASS: four seeded properties, bounded grammar oracle, hostile-size and nesting tests |
@@ -40,8 +41,8 @@ Progress:
 | 15 | PASS: four commands each exit 0 independently; full opt-in suite has no skips |
 | 16 | PENDING: independent review has not run |
 | 17 | READY: PR #3 from `release/1.0.0`, guard CLEAN; merge and publication pending |
-| 18 | PASS: 28 preparation, 23 round 1 and 12 round 2 mutations killed; round 3 survivor now killed by CLI and wheel contracts |
-| 19 | Round 3: e FAIL on missing folded-comment coverage, corrected below; prior workspace blocker resolved; independent re-review pending |
+| 18 | PASS: 28 preparation, 23 round 1 and 12 round 2 mutations killed; round 3 survivor caught by CLI and wheel contracts; all four round 4 survivors caught by CLI contracts |
+| 19 | Round 4: e FAIL on four missing CLI contracts, corrected below; independent re-review pending |
 
 ## Preparation evidence
 
@@ -308,6 +309,44 @@ and `pytest`. Strict typing of tests also passed. With fetched reference files a
 both wheel and PyPI upgrade checks enabled, the full suite passed all 311 tests with
 no skips. Gate outputs are in `format.log`, `lint.log`, `types.log`, `pytest.log`,
 `gate-results.json` and `full-pytest.xml` under the evidence root.
+
+## QA lenses: round 4 corrections
+
+Reviewed head: `6dfa338ec631e54a635261720726be335af16681`.
+Fix commit: this section's commit, titled `cover header folding edge cases in CLI contracts`.
+Report: `lens-e-r4/REPORT.md` under the certification scratch root.
+The independent review confirmed E-CONTRACT-01 is fixed, but reported FAIL on four
+surviving mutations. Same-lens re-verification remains pending.
+
+All four findings are coverage gaps in existing correct behavior. The new hand-written
+contracts in `tests/test_cli_folding.py` invoke the public strict CLI with byte input,
+checking exit status, stdout/stderr and exact decoded comment content or association.
+Production code, API and behavior are unchanged, so no CHANGELOG entry is needed.
+
+| Finding | Mutation now caught | New contract |
+| --- | --- | --- |
+| E-CONTRACT-02 | `value.strip(" \t")` to `value.strip()` | `test_initial_field_rejects_trailing_nonbreaking_space` requires exit 1, empty stdout and a CLI diagnostic. |
+| E-CONTRACT-03 | `raw.strip(" \t")` to `raw.lstrip(" \t").rstrip()` | `test_folded_comment_preserves_trailing_nonbreaking_space` requires comment `" x\u00a0 "`. |
+| E-CONTRACT-04 | Append `.replace("\t", " ")` to continuation trimming | `test_folded_comment_preserves_internal_tab` requires comment `" x\ty"`. |
+| E-CONTRACT-05 | `lines[-1].append` to `lines[0].append` | `test_continuation_belongs_to_second_via_field` requires ordered host/comment pairs `[("first", None), ("second", "note")]`. |
+
+A fresh scratch source copy passed all four new contracts before mutation. Each
+reported mutation was then applied separately and its matching test failed with an
+assertion failure, without collection errors or timeouts. Original source bytes were
+restored and checked after each mutation. All four tests passed again after restoration.
+
+Evidence root:
+`C:/lianes8-build/codex-pylib/scratch/viaheader-cert/fix-r4-ba9166e0088f4968a47a42b59b1431b5/`.
+`verify_mutations.py`, `mutation-results.json`, `source-sha256.txt`, `baseline.log`,
+`E-CONTRACT-02.log` through `E-CONTRACT-05.log`, `restored.log` and matching XML files
+record the checks. No pre-existing review workspace was modified. All temporary files
+were confined to scratch, with a 300 s per-test timeout.
+
+The four required gates each exited 0: `ruff format --check .`, `ruff check .`,
+`mypy --strict src` and `pytest`. Strict typing of tests also passed. The full suite
+passed all 315 tests with no skips, including fetched reference checks, wheel e2e
+and the PyPI upgrade. Gate commands and outputs are recorded in `gates-results.json`,
+`gates-*.log` and `gates.xml` under the evidence root.
 
 ## Disputed findings
 
