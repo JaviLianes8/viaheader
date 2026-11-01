@@ -16,6 +16,12 @@ def parse(value: str | Iterable[str] | None, *, strict: bool = False) -> list[Ho
     Each field line is read as its own list, so text in one line never reaches the next.
     By default an invalid entry is skipped and parsing resumes at a safe comma; with
     ``strict=True`` anything outside the RFC 9110 grammar raises ``ViaError``.
+
+    >>> from viaheader import parse
+    >>> [hop.host for hop in parse(["1.0 fred", "1.1 edge:80"], strict=True)]
+    ['fred', 'edge']
+    >>> parse(None)
+    []
     """
     hops: list[Hop] = []
     for index, line in enumerate(field_lines(value)):
@@ -34,5 +40,5 @@ def field_lines(value: str | Iterable[str] | None) -> list[str]:
     lines = list(value)
     for line in lines:
         if not isinstance(line, str):
-            raise TypeError(f"each Via field line must be a str, not {type(line).__name__}")
+            raise TypeError(f"each Via field line must be a str, not {type(line).__name__[:40]}")
     return lines

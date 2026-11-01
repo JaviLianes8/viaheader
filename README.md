@@ -1,5 +1,7 @@
 # viaheader
 
+[![Lianes8 Certified](https://lianes8studio.com/certified/lianes8-certified-badge.svg)](https://lianes8studio.com/certified)
+
 Parse, build and append the HTTP `Via` header per RFC 9110: strict or safely lenient,
 typed, zero-dependency.
 
@@ -113,6 +115,7 @@ Prints the hops as JSON. Without values it reads a header block from stdin as la
 and uses its `Via` lines; with several responses (`curl -sIL`) the last one counts, and
 a body after the blank line is not read. With `--strict` an invalid value exits with
 status 1 and the reason.
+Unknown options exit 2 without echoing their values; a closed output pipe exits 1.
 
 ## API
 
@@ -134,9 +137,29 @@ commas gets those wrong, and a parser that lets a client's unclosed comment run 
 the very entry a loop check is looking for. `viaheader` reads it the way RFC 9110
 defines it, writes it so nothing can be injected, and has no dependencies.
 
+Use `str.split(",")` if you control the input and know it has no comments. Use
+[`email.message.Message`](https://docs.python.org/3/library/email.message.html)
+to work with a complete mail message: its `get_all("Via")` retrieves raw field lines.
+Pass those lines to `viaheader` when you need structured hops, validation, safe
+forwarding or loop checks. This library does not send HTTP requests or verify that a
+proxy's claimed identity is trustworthy.
+
+The [GUIDE](https://github.com/JaviLianes8/viaheader/blob/main/GUIDE.md) describes the
+stable API, error rules and upgrade from 0.2.0. See the
+[CHANGELOG](https://github.com/JaviLianes8/viaheader/blob/main/CHANGELOG.md) for releases.
+
+## Development
+
+Install `pip install -e ".[dev]"`, then run `scripts/check.ps1`.
+`python scripts/fetch_upstream.py` downloads the four references pinned in
+`tests/upstream/MANIFEST.json`; their tests skip when the files are absent.
+Set `VIAHEADER_UPSTREAM` to keep downloads outside the checkout. Set `VIAHEADER_E2E=1`
+to build and inspect both distributions and test the installed wheel and CLI;
+`VIAHEADER_E2E_PYPI=1` also checks an in-place upgrade from PyPI 0.2.0.
+
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](https://github.com/JaviLianes8/viaheader/blob/main/LICENSE).
 
 ## Links
 

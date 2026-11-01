@@ -8,6 +8,11 @@ from ._forward import append, has_loop
 from ._model import Hop
 from ._parse import parse
 
-__version__ = "0.2.0"
+__version__ = "1.0.0"
+
+Hop.__module__ = __name__
+ViaError.__module__ = __name__
 
 __all__ = ["Hop", "ViaError", "append", "build", "has_loop", "parse"]
+
+del annotations

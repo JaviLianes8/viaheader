@@ -30,6 +30,11 @@ def append(
     pseudonym that replaces the whole received-by, as RFC 9110 asks of a proxy that
     hides hosts behind a firewall. ``drop_comments`` removes received
     comments. ``hop`` itself must be valid RFC 9110, or ``ViaError`` is raised.
+
+    >>> from viaheader import Hop, append
+    >>> append("1.0 internal:80 (cache)", Hop("edge", "1.1"),
+    ...        pseudonyms={"INTERNAL": "fw"}, drop_comments=True)
+    '1.0 fw, 1.1 edge'
     """
     own = render(hop, legacy=False)
     renames = _renames(pseudonyms)
@@ -51,9 +56,9 @@ def _renames(pseudonyms: Mapping[str, str] | None) -> dict[str, str]:
         if not isinstance(host, str) or not isinstance(pseudonym, str):
             raise TypeError("pseudonyms maps str hosts to str pseudonyms")
         if not is_token(pseudonym):
-            raise ViaError(f"pseudonym {pseudonym!r} is not a token")
+            raise ViaError("pseudonym is not a token")
         if not valid_received_by(host, legacy=True) or Hop(host, "1.1").host != host:
-            raise ViaError(f"pseudonyms key {host!r} is not a host without a port")
+            raise ViaError("pseudonyms key is not a host without a port")
         renames[_host_key(host)] = pseudonym
     return renames
 
@@ -66,24 +71,31 @@ def has_loop(value: str | Iterable[str] | None, name: str, *names: str) -> bool:
     that port. IPv6 literals match in any of their spellings. The value is parsed
     leniently, so the entries proxies appended are found whatever a client wrote in
     front of them.
+
+    >>> from viaheader import has_loop
+    >>> has_loop("1.0 client (, 1.1 Edge:443", "edge")
+    True
+    >>> has_loop("1.1 edge:80", "edge:443")
+    False
     """
     wanted = [_split_name(each) for each in (name, *names)]
+    any_port = {host for host, port in wanted if port is None}
+    exact = set(wanted)
     for hop in parse(value):
         host = _host_key(hop.host)
-        for wanted_host, wanted_port in wanted:
-            if host == wanted_host and (wanted_port is None or hop.port == wanted_port):
-                return True
+        if host in any_port or (host, hop.port) in exact:
+            return True
     return False
 
 
 def _split_name(name: str) -> tuple[str, int | None]:
     if not isinstance(name, str):
-        raise TypeError(f"a proxy name must be a str, not {type(name).__name__}")
+        raise TypeError("a proxy name must be a str")
     if not valid_received_by(name, legacy=True):
-        raise ViaError(f"proxy name {name!r} is not a host or pseudonym with an optional port")
+        raise ViaError("proxy name is not a host or pseudonym with an optional port")
     probe = Hop(name, "1.1")
     if probe.port is None and len(name) > len(probe.host) + 1:
-        raise ViaError(f"proxy name {name!r} has a port above 65535")
+        raise ViaError("proxy name has a port above 65535")
     return _host_key(probe.host), probe.port
 
 
