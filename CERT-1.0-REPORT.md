@@ -313,7 +313,7 @@ no skips. Gate outputs are in `format.log`, `lint.log`, `types.log`, `pytest.log
 ## QA lenses: round 4 corrections
 
 Reviewed head: `6dfa338ec631e54a635261720726be335af16681`.
-Fix commit: this section's commit, titled `cover header folding edge cases in CLI contracts`.
+Fix commit: [`daf9519e88d16ba9976f53c5beeabceba24742a4`](https://github.com/JaviLianes8/viaheader/commit/daf9519e88d16ba9976f53c5beeabceba24742a4).
 Report: `lens-e-r4/REPORT.md` under the certification scratch root.
 The independent review confirmed E-CONTRACT-01 is fixed, but reported FAIL on four
 surviving mutations. Same-lens re-verification remains pending.
