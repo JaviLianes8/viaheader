@@ -17,6 +17,21 @@ from viaheader._cli import main
 HEADER = b"HTTP/1.1 200 OK\r\nVia: 1.1 edge\r\n\r\n"
 
 
+def test_folded_comment_preserves_nonbreaking_space() -> None:
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")}
+    result = subprocess.run(
+        [sys.executable, "-m", "viaheader", "--strict"],
+        input=b"Via: 1.1 edge (\r\n \xa0)\r\n\r\n",
+        capture_output=True,
+        env=env,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stderr == b""
+    assert json.loads(result.stdout)[0]["comment"] == " \u00a0"
+
+
 @pytest.mark.parametrize("body", [b"body\r\n", b"x", b"HTTPx", b"\rX"])
 def test_cli_finishes_when_body_starts_without_waiting_for_eof(body: bytes) -> None:
     env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1] / "src")}

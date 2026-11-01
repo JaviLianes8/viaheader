@@ -1,6 +1,6 @@
 # viaheader 1.0.0 certification report
 
-Preparation and QA rounds 1 and 2 corrections recorded on 2026-11-01.
+Preparation and QA rounds 1, 2 and 3 corrections recorded on 2026-11-01.
 Independent re-review, merge and publication remain pending.
 
 Progress:
@@ -15,6 +15,7 @@ Progress:
 - [ ] Independent reviewer (item 16)
 - [x] QA round 1 corrections and regression checks
 - [x] QA round 2 workspace correction and supplemental contract checks
+- [x] QA round 3 folded-comment contract and mutation verification
 - [ ] Five independent QA PASS verdicts (item 19)
 - [x] PR #3 and guard CLEAN; merge and publication remain pending (item 17)
 
@@ -27,7 +28,7 @@ Progress:
 | 3 | PASS: all six names and both Hop properties have executed doctests; README and GUIDE run |
 | 4 | PASS: `mypy --strict src tests`, runtime annotations, installed consumer, shipped `py.typed` |
 | 5 | PASS: typed errors and positions; rejected values omitted, type names bounded |
-| 6 | PASS: 310 tests including package, CLI, failure paths, values and documentation |
+| 6 | PASS: 311 tests including package, CLI, failure paths, values and documentation |
 | 7 | PASS: four sources fetched live, hashed and used to derive examples and grammar checks |
 | 8 | PASS: fresh wheel installation, both CLI entry points, real pipe, in-place PyPI upgrade |
 | 9 | PASS: four seeded properties, bounded grammar oracle, hostile-size and nesting tests |
@@ -39,8 +40,8 @@ Progress:
 | 15 | PASS: four commands each exit 0 independently; full opt-in suite has no skips |
 | 16 | PENDING: independent review has not run |
 | 17 | READY: PR #3 from `release/1.0.0`, guard CLEAN; merge and publication pending |
-| 18 | PASS: 28 preparation mutations, 23 round 1 mutations and 12 round 2 mutations killed |
-| 19 | Round 1: a FAIL, c FAIL, e BLOCKED; round 2: e workspace FAIL, corrected below; independent re-review pending |
+| 18 | PASS: 28 preparation, 23 round 1 and 12 round 2 mutations killed; round 3 survivor now killed by CLI and wheel contracts |
+| 19 | Round 3: e FAIL on missing folded-comment coverage, corrected below; prior workspace blocker resolved; independent re-review pending |
 
 ## Preparation evidence
 
@@ -267,6 +268,46 @@ Verify the clone is clean and matches the pushed correction head before starting
 Record the actual workspace in the independent report. Keep its mutation definitions
 independent of the supplemental table, run at least ten probes, use 300 s per test,
 and keep all temporary files under the allocated review directory.
+
+## QA lenses: round 3 corrections
+
+Reviewed head: `07e6091657795250d7f7b3238fa7fdf142e20291`.
+Fix commit: recorded after the correction commit.
+Report: `lens-e-r3/REPORT.md` under the certification scratch root.
+The independent review resolved E-BLOCK-01 and killed nine of ten mutations, but
+reported FAIL because M06 survived. Same-lens re-verification remains pending.
+
+| Finding | Correction |
+| --- | --- |
+| E-CONTRACT-01 | Added exact nonbreaking-space preservation assertions through the public CLI subprocess and both installed-wheel CLI entry points. The reported continuation-trimming mutation now fails the CLI contract and wheel e2e test. |
+
+The hand-written input is `b"Via: 1.1 edge (\r\n \xa0)\r\n\r\n"`; its decoded
+comment must equal `" \u00a0"`, with exit status 0 and empty stderr. The current
+implementation already meets this contract. Production code, API and behavior are
+unchanged, so no CHANGELOG entry is needed.
+
+In a fresh scratch copy, the new CLI test passed before mutation. Changing only
+`raw.strip(" \t")` to `raw.strip()` made the CLI test and freshly built wheel test
+fail their exact-comment assertions: actual `" "`, expected `" \u00a0"`. Both failures
+were assertion failures, with successful CLI exits and empty stderr. Restoring the
+original source bytes made the CLI regression pass again.
+
+| Mutation | Result | Contracts that caught it |
+| --- | --- | --- |
+| Lens-e M06: trim all Unicode whitespace from folded continuations | KILLED | `test_folded_comment_preserves_nonbreaking_space`; `test_installed_wheel_end_to_end` |
+
+Evidence root:
+`C:/lianes8-build/codex-pylib/scratch/viaheader-cert/fix-r3-64a63c7a25034490805f05fac5184cdb/`.
+`verify_mutation.py`, `mutation-results.json`, `baseline.log`, `M06-cli-red.log`,
+`M06-wheel-red.log`, `restored.log` and matching XML files record the probe and source
+hash. Temporary files stayed under this root; every pytest run used a 300 s per-test
+timeout. No pre-existing review workspace was modified.
+
+All four gates exited 0: `ruff format --check .`, `ruff check .`, `mypy --strict src`
+and `pytest`. Strict typing of tests also passed. With fetched reference files and
+both wheel and PyPI upgrade checks enabled, the full suite passed all 311 tests with
+no skips. Gate outputs are in `format.log`, `lint.log`, `types.log`, `pytest.log`,
+`gate-results.json` and `full-pytest.xml` under the evidence root.
 
 ## Disputed findings
 

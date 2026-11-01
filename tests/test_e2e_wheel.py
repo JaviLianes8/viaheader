@@ -125,6 +125,11 @@ def test_installed_wheel_end_to_end(tmp_path: Path, distributions: tuple[Path, P
         shown = _run(*command, cwd=work, stdin=block)
         assert shown.returncode == 0, shown.stderr
         assert [hop["host"] for hop in json.loads(shown.stdout)] == ["varnish", "cdn"]
+        # Hand-written folded comment: Latin-1 whitespace remains comment content.
+        folded = _run(*command, "--strict", cwd=work, stdin=b"Via: 1.1 edge (\r\n \xa0)\r\n\r\n")
+        assert folded.returncode == 0, folded.stderr
+        assert folded.stderr == b""
+        assert json.loads(folded.stdout)[0]["comment"] == " \u00a0"
     rejected = _run(bindir / "viaheader", "--strict", "1.1 a (", cwd=work)
     assert rejected.returncode == 1
     assert b"unterminated comment" in rejected.stderr
