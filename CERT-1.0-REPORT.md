@@ -127,7 +127,7 @@ from `release/1.0.0` to `main`. The guard reports `CLEAN: viaheader #3`.
 ## QA lenses: round 1 corrections
 
 Reviewed head: `77b903ed1a7fb7d385921bbef28fee84d6e47674`.
-Fix commit: `fix string validation and stream header input` (this commit).
+Fix commit: [`5becf580c59ca3fc7db8ac1042d7d5d797fda52b`](https://github.com/JaviLianes8/viaheader/commit/5becf580c59ca3fc7db8ac1042d7d5d797fda52b).
 Reports: `lens-a-r1/REPORT.md`, `lens-c-r1/REPORT.md`, `lens-e-r1/REPORT.md` under
 `C:/lianes8-build/codex-pylib/scratch/viaheader-cert/`. Their recorded verdicts are
 FAIL, FAIL and BLOCKED respectively. No new independent verdict is claimed here.
