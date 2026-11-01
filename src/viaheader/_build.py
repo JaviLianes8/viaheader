@@ -15,7 +15,8 @@ def build(hops: Iterable[Hop]) -> str:
 
     Raises ``ViaError`` for a protocol, version or received-by that is not valid RFC 9110
     syntax and for a comment holding characters a field value cannot carry. Comments are
-    escaped as needed, so ``parse(build(hops)) == hops``.
+    escaped as needed, so ``parse(build(hops)) == hops`` for a list of hops. Materialize
+    single-use iterables as a list before building if you need to compare the result.
 
     >>> from viaheader import Hop, build
     >>> build([Hop("edge", "1.1", comment="cache")])

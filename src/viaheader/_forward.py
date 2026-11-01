@@ -57,6 +57,7 @@ def _renames(pseudonyms: Mapping[str, str] | None) -> dict[str, str]:
     for host, pseudonym in (pseudonyms or {}).items():
         if not isinstance(host, str) or not isinstance(pseudonym, str):
             raise TypeError("pseudonyms maps str hosts to str pseudonyms")
+        host, pseudonym = str.__str__(host), str.__str__(pseudonym)
         if not is_token(pseudonym):
             raise ViaError("pseudonym is not a token")
         if not valid_received_by(host, legacy=True) or Hop(host, "1.1").host != host:
@@ -93,6 +94,7 @@ def has_loop(value: str | Iterable[str] | None, name: str, *names: str) -> bool:
 def _split_name(name: str) -> tuple[str, int | None]:
     if not isinstance(name, str):
         raise TypeError("a proxy name must be a str")
+    name = str.__str__(name)
     if not valid_received_by(name, legacy=True):
         raise ViaError("proxy name is not a host or pseudonym with an optional port")
     probe = Hop(name, "1.1")

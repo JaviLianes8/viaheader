@@ -1,7 +1,7 @@
 # viaheader 1.0.0 certification report
 
-Preparation evidence recorded on 2026-11-01. Independent review, five QA lenses,
-merge and publication remain pending.
+Preparation and QA round 1 corrections recorded on 2026-11-01.
+Independent re-review, merge and publication remain pending.
 
 Progress:
 - [x] Resume `release/1.0.0`, preserving the initial report commit 4e2cb17
@@ -13,7 +13,8 @@ Progress:
 - [x] README, GUIDE, dated CHANGELOG and rendering check (items 11, 12)
 - [x] Four gates, plus strict typing of tests (item 15)
 - [ ] Independent reviewer (item 16)
-- [ ] Five independent QA lenses (item 19)
+- [x] QA round 1 corrections and regression checks
+- [ ] Five independent QA PASS verdicts (item 19)
 - [x] PR #3 and guard CLEAN; merge and publication remain pending (item 17)
 
 ## Scorecard
@@ -25,11 +26,11 @@ Progress:
 | 3 | PASS: all six names and both Hop properties have executed doctests; README and GUIDE run |
 | 4 | PASS: `mypy --strict src tests`, runtime annotations, installed consumer, shipped `py.typed` |
 | 5 | PASS: typed errors and positions; rejected values omitted, type names bounded |
-| 6 | PASS: 273 tests including package, CLI, failure paths, values and documentation |
+| 6 | PASS: 308 tests including package, CLI, failure paths, values and documentation |
 | 7 | PASS: four sources fetched live, hashed and used to derive examples and grammar checks |
 | 8 | PASS: fresh wheel installation, both CLI entry points, real pipe, in-place PyPI upgrade |
 | 9 | PASS: four seeded properties, bounded grammar oracle, hostile-size and nesting tests |
-| 10 | PASS: Python 3.10 through 3.14, eight installed builds including free-threaded 3.14 |
+| 10 | Preparation PASS: eight builds, Python 3.10 to 3.14; fixes checked on 3.14.6 |
 | 11 | PASS: problem, verified alternatives, absolute links, exact badge, strict twine check |
 | 12 | PASS: `1.0.0` CHANGELOG dated 2026-11-01 |
 | 13 | PASS: version 1.0.0, Production/Stable, Python 3.10 to 3.14, MIT, URLs, no runtime dependencies |
@@ -37,104 +38,41 @@ Progress:
 | 15 | PASS: four commands each exit 0 independently; full opt-in suite has no skips |
 | 16 | PENDING: independent review has not run |
 | 17 | READY: PR #3 from `release/1.0.0`, guard CLEAN; merge and publication pending |
-| 18 | PASS: 28 deliberate mutations, 28 killed, no survivors |
-| 19 | PENDING: no lens verdicts recorded |
+| 18 | PASS: 28 preparation mutations and 23 correction-round mutations killed |
+| 19 | Round 1: a FAIL, c FAIL, e BLOCKED; corrections below await independent re-review |
 
-## Baseline and API review
+## Preparation evidence
 
-The live endpoint https://pypi.org/pypi/viaheader/json listed only 0.2.0 on
-2026-11-01. Every package file in its downloaded wheel matches main at 09b74be
-byte for byte. Baseline format, lint and strict typing passed; pytest was
-225 passed, 9 skipped (eight unfetched source checks and one opt-in wheel test).
+The complete preparation details, distribution hashes and interpreter matrix remain
+in the [baseline report](https://github.com/JaviLianes8/viaheader/blob/77b903ed1a7fb7d385921bbef28fee84d6e47674/CERT-1.0-REPORT.md).
+The following records describe that preparation, before the QA fixes below.
 
-The six names and signatures remain: `Hop(received_by, version, protocol="HTTP",
-comment=None)`, `ViaError(message, *, line=None, position=None)`,
-`parse(value, *, strict=False)`, `build(hops)`,
-`append(existing, hop, *, pseudonyms=None, drop_comments=False)` and
-`has_loop(value, name, *names)`. Hop remains a frozen dataclass with deferred syntax
-validation. Contracts include values, hashing, copying, pickling, properties,
-iterable inputs, ordering, pseudonyms, error families and exact parsing positions.
+PyPI 0.2.0 matched main at 09b74be byte for byte. Baseline gates passed with
+225 tests passing and 9 skipped. Public names, signatures and defaults remain pinned
+by contracts for values, hashing, copying, pickling, properties, iterables and errors.
+Hop is frozen and defers syntax validation. CHANGELOG lists every behavior change.
 
-Changes checked against 0.2.0: validation no longer echoes entire field values;
-wrong-type messages omit or bound type names; non-mapping pseudonyms consistently
-raise TypeError instead of being ignored when falsy or raising AttributeError.
-Hop and ViaError have the public module name, old and new pickles work both ways,
-and the incidental `annotations` attribute is removed. CLI usage errors omit invalid
-argument values. Closed stdout pipes return 1, including Windows EINVAL and flush
-failures. Loop-name matching and header unfolding avoid quadratic work. All changes
-are listed in CHANGELOG; parsed and serialized valid values remain unchanged.
+Four references fetched on 2026-11-01 matched `tests/upstream/MANIFEST.json`:
+RFC 9110, RFC 9112, RFC 3986 and the pinned MDN Via revision. Their URLs, revisions,
+sizes, hashes and licenses are recorded there. Downloaded text is neither committed
+nor shipped. `scripts/fetch_upstream.py` reproduces the downloads outside the checkout.
+Source tests extract examples and grammar; a separate bounded grammar checks
+30,000 generated strings. Four seeded properties each exercise 3,000 cases.
+Hand-written cases are not presented as official vectors. Hostile tests cover
+256 KiB shapes, depth 131,072, huge ports and fields, and 20,000 names against hops.
 
-## Ground truth and properties
+The preparation suite passed 273 tests with wheel and PyPI upgrade checks enabled.
+Fresh venvs imported the installed wheel in isolated mode, drove both CLI entrypoints,
+and checked real pipes. An in-place upgrade from PyPI 0.2.0 preserved 25,007 snapshot
+results and bidirectional pickles. An external strict typed consumer passed.
+Wheel and sdist contents, licenses, type marker and exclusions were checked;
+both artifacts passed `twine check --strict`. Original hashes are in the baseline report.
 
-Fetched on 2026-11-01: https://www.rfc-editor.org/rfc/rfc9110.txt,
-https://www.rfc-editor.org/rfc/rfc9112.txt,
-https://www.rfc-editor.org/rfc/rfc3986.txt and the MDN Via page at the immutable
-revision recorded in `tests/upstream/MANIFEST.json`. The manifest records each URL,
-revision, size, SHA-256 and license. All four live downloads match their hashes.
-`scripts/fetch_upstream.py` re-fetches them; `VIAHEADER_UPSTREAM` can locate them
-outside the checkout. Fetched text is neither committed nor shipped.
-
-`test_sources.py` extracts the real Via examples and ABNF rules, checks tokens and
-comment code points, quoted-pairs, ports, empty list members and folding. The MDN
-examples also match. `test_grammar_property.py` builds a separate regex grammar
-from fetched character classes and whitespace rules: three seeds, 10,000 candidate
-strings each, with comment depth bounded to four. Inputs beyond that bound are
-excluded from this oracle, while the nested-comment tests exercise depth 131,072.
-Hand-written examples and generated cases are not presented as official vectors.
-The README comparison with `str.split` and `email.message.Message` runs in a test.
-
-Four seeded properties each generate 3,000 cases: safe recovery before appended
-hops, loop detection, lenient forwarding and strict build/parse round trips.
-Hostile tests cover nine 256 KiB shapes, deep nesting, many matched comments,
-5,000-digit ports, 13 MB invalid fields, 40,000 continuation lines and 20,000 proxy
-names against 20,000 hops. Tests have a 300 s limit. Error messages remain bounded;
-input processing uses linear scans or indexed name lookup.
-
-## Packaging and upgrade
-
-The final full suite on CPython 3.14.6 has 273 passed, no skips, with both
-`VIAHEADER_E2E=1` and `VIAHEADER_E2E_PYPI=1`. The wheel is installed into fresh venvs
-and imported from an empty directory with `-I`; package location is asserted.
-Both `python -m viaheader` and the console entry point run by subprocess, including
-stdin header blocks, strict rejection and a real closed stdout pipe.
-
-The actual PyPI 0.2.0 is installed first, exercised, then upgraded in place.
-`upgrade_snapshot.py` compares 25,007 results across the releases: strict and lenient
-parsing, building, forwarding, loop checks and error types/positions. Every result
-matches; changed error text is checked separately. Hop and ViaError pickle round
-trips work in both directions. A strict external typed consumer also passes.
-
-The wheel contains only the package, `py.typed`, entry-point metadata and MIT
-license. The sdist contains source, reproducible tests, source manifest, documentation
-and scripts, without certification reports, downloaded references or caches.
-Both artifacts pass `twine check --strict`. SHA-256:
-
-- Wheel: `8e501d81a9c594f2221c597695dd76219e1b52485c4c7cf0fede692767c4503e`
-- Sdist: `c402de4d11b0d58562913dc49b6a66786db7ed5ad8fc668c4c6f4c0c79d637c7`
-
-## Supported interpreters
-
-The final wheel and sdist match the source and tests at e08eef5. Each interpreter
-uses a fresh venv with the wheel installed, runs the sdist's suite with `src` absent
-and `pythonpath` empty, verifies imports come from site-packages, and drives the
-console command by subprocess. Fetched references are present. The two opt-in
-build/upgrade tests are skipped here because they ran separately above.
-
-| Interpreter | Result |
-| --- | --- |
-| CPython 3.10.22 | 271 passed, 2 skipped |
-| CPython 3.11.11 (Blender) | 271 passed, 2 skipped |
-| CPython 3.11.18 | 271 passed, 2 skipped |
-| CPython 3.12.16 | 271 passed, 2 skipped |
-| CPython 3.13.18 | 271 passed, 2 skipped |
-| CPython 3.14.6 (system) | 271 passed, 2 skipped |
-| CPython 3.14.10 | 271 passed, 2 skipped |
-| CPython 3.14.10 free-threaded | 271 passed, 2 skipped |
-
-No supported minor version was unavailable. Stale launcher entries for 3.10.19,
-3.11.5/14/17, 3.12.12/15, 3.13.2/16 and 3.14.2/8 (including free-threaded builds)
-point to missing executables and could not run; the working builds above were
-discovered on disk. Duplicate paths to the same runtime were resolved once.
+The preparation matrix used the wheel and sdist matching e08eef5, with source imports
+disabled: 271 passed and 2 opt-in tests skipped on each of CPython 3.10.22, 3.11.11
+(Blender), 3.11.18, 3.12.16, 3.13.18, 3.14.6, 3.14.10 and 3.14.10 free-threaded.
+Stale launcher entries pointed to absent executables; working builds were found on disk.
+This correction round ran on CPython 3.14.6; it does not renew the full matrix verdict.
 
 ## Author mutation round
 
@@ -179,9 +117,81 @@ collection failures, timeouts or survivors. The unmodified full suite passed aft
 
 Each command ran independently and exited 0: `ruff format --check .`, `ruff check .`,
 `mypy --strict src`, `pytest`. The stronger `mypy --strict src tests` also passed.
-The full pytest result above includes fetched sources, built-wheel checks and PyPI
-upgrade. Independent review (16), merge/publication (17) and five fresh QA lenses
-(19) remain pending; no pass verdict is claimed for those stages.
+The correction suite passed 308 tests with fetched sources, wheel checks and PyPI
+upgrade enabled. Independent review (16), merge/publication (17) and five QA PASS
+verdicts (19) remain pending; no pass is claimed for those stages.
 
 PR: https://github.com/JaviLianes8/viaheader/pull/3, titled `viaheader 1.0.0`,
 from `release/1.0.0` to `main`. The guard reports `CLEAN: viaheader #3`.
+
+## QA lenses: round 1 corrections
+
+Reviewed head: `77b903ed1a7fb7d385921bbef28fee84d6e47674`.
+Fix commit: `fix string validation and stream header input` (this commit).
+Reports: `lens-a-r1/REPORT.md`, `lens-c-r1/REPORT.md`, `lens-e-r1/REPORT.md` under
+`C:/lianes8-build/codex-pylib/scratch/viaheader-cert/`. Their recorded verdicts are
+FAIL, FAIL and BLOCKED respectively. No new independent verdict is claimed here.
+
+| Finding | Correction |
+| --- | --- |
+| A-001 | README and GUIDE describe incremental reads, body-prefix lookahead, buffering and header-only EOF. |
+| A-002 | README explicitly allows HTAB in comments while rejecting other forbidden controls. |
+| A-003 | README and build docstring qualify equality for lists and explain iterator consumption. |
+| C-01 | Normalize Hop fields, pseudonym keys/values and proxy names to underlying built-in strings. |
+| C-02 | Normalize single and iterable field lines before scanning; diagnostics contain one character. |
+| C-03 | Stream binary and text stdin; stop at a body prefix, preserving last-response selection. |
+| E-BLOCK-01 | Fresh clone and serial mutation rerun completed; existing workspace untouched. Independent rerun assigned below. |
+
+All behavior changes are in CHANGELOG. Contracts were added before implementation:
+`tests/test_string_subclasses.py` and `tests/test_cli_streaming.py` produced 23 failures
+and 12 passes at the reviewed head; all 35 now pass. The wider targeted run passed 159.
+The reviewer's seven regressions and memory probe were copied to fresh scratch and
+replayed unchanged against the fixed source, with only their paths redirected: 8 passed.
+For 0, 1, 4 and 16 MiB bodies, CLI peak working sets were 18,378,752, 18,362,368,
+18,305,024 and 18,247,680 bytes. The new stream contracts also bound reads and allocations.
+Format, lint, strict source typing and full pytest each exited 0; strict test typing passed.
+
+Evidence root: `C:/lianes8-build/codex-pylib/scratch/viaheader-cert/fix-r1-20261101-ec57/`.
+Logs: `evidence/regressions-red.txt`, `evidence/reviewer-replay.txt`, `evidence/full-suite.txt`.
+Mutation evidence: `mutation-definitions.json`, `mutation-results.json`, per-case XML/logs.
+The fresh clone began at the reviewed head, then received the fixes. Each mutation ran
+alone, with bytecode disabled, 300 s per test and source hashes checked after restoration.
+Baseline and restored suites each passed 306 tests, with only the 2 opt-in e2e tests skipped.
+R1-03 survived its narrow selection but failed the full suite; no mutation survived.
+These are supplemental checks, not a substitute for independent lens-e sign-off.
+
+| Id | Mutation | Contract that failed (all KILLED) |
+| --- | --- | --- |
+| R1-01 | Drop the final parsed hop | `test_a_version_alone_means_http` |
+| R1-02 | Shift field-line error index | `test_invalid_values_raise_with_the_offset` |
+| R1-03 | Merge independent field lines | `test_the_error_names_the_field_line` |
+| R1-04 | Keep lowercase HTTP unnormalized | `test_any_spelling_of_http_is_omitted` |
+| R1-05 | Reject the maximum port | `test_ports_are_tcp_port_numbers` |
+| R1-06 | Treat port zero as a wildcard | `test_empty_port_is_a_wildcard_and_zero_is_a_specific_port` |
+| R1-07 | Prepend the new hop | `test_append_keeps_the_received_order` |
+| R1-08 | Keep received comments when dropping them | `test_drop_comments_removes_received_comments_only` |
+| R1-09 | Make host matching case sensitive | `test_pseudonyms_replace_the_whole_received_by` |
+| R1-10 | Accept unused invalid pseudonyms | `test_all_names_and_mappings_are_validated_before_reading_input` |
+| R1-11 | Stop escaping unmatched parentheses | `test_comments_are_escaped_only_where_needed` |
+| R1-12 | Build legacy IPv6 as strict output | `test_an_invalid_received_by_is_refused` |
+| R1-13 | Lose strict invalid-character precedence | `test_invalid_values_raise_with_the_offset` |
+| R1-14 | Accept comments without whitespace in strict mode | `test_invalid_values_raise_with_the_offset` |
+| R1-15 | Swap parsed version and protocol | `test_a_version_alone_means_http` |
+| R1-16 | Retain quoted-pair backslashes | `test_a_comment_is_decoded` |
+| R1-17 | Lose empty comments | `test_an_empty_comment_is_an_empty_string` |
+| R1-18 | Remove parse from exports | `test_all_lists_exactly_the_public_api` |
+| R1-19 | Trust subclass serialization fields | `test_serialization_rejects_hidden_injection` |
+| R1-20 | Trust subclass scanning methods | `test_parse_uses_underlying_field_line` |
+| R1-21 | Buffer the ignored body through EOF | `test_body_size_does_not_control_cli_memory` |
+| R1-22 | Retain earlier response fields | `test_streaming_retains_last_response_and_ignores_forged_body_fields` |
+| R1-23 | Break the validation error family | `test_via_error_is_a_value_error` |
+
+E-BLOCK-01 handoff: a new empty directory is reserved at
+`C:/lianes8-build/codex-pylib/scratch/viaheader-cert/lens-e-r1-independent-20261101-ec57/`.
+Its `src` destination is absent and ready for a fresh clone of the pushed correction head.
+The independent mutation round and same-lens re-verification remain with the release
+review; no pre-existing mutation workspace was moved, reset, deleted or reused.
+
+## Disputed findings
+
+None.

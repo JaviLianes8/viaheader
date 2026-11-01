@@ -99,10 +99,12 @@ print(parse(value, strict=True)[0].comment)
 ```
 
 `build` writes only valid RFC 9110: it raises `ViaError` for a protocol, version or
-received-by that is not a token (with an optional port) and for a comment holding CR,
-LF, another control or a character above U+00FF. It escapes backslashes and unpaired
+received-by that is not a token (with an optional port) and for a comment holding an
+ASCII control other than HTAB (including CR, LF and DEL), or a character above U+00FF.
+Horizontal tabs (HTAB) and U+0080-U+00FF are allowed in comments. It escapes backslashes and unpaired
 parentheses in comments, so no header can be injected, no hop can be forged for an RFC
-9110 parser, and `parse(build(hops)) == hops`.
+9110 parser, and `parse(build(hops)) == hops` for a list of hops. Materialize other
+iterables as a list before building when checking equality; `build` consumes iterators.
 
 ### Command line
 
@@ -112,9 +114,12 @@ $ python -m viaheader --strict "1.0 fred, 1.1 p.example.net"
 ```
 
 Prints the hops as JSON. Without values it reads a header block from stdin as latin-1
-and uses its `Via` lines; with several responses (`curl -sIL`) the last one counts, and
-a body after the blank line is not read. With `--strict` an invalid value exits with
-status 1 and the reason.
+and uses its `Via` lines; with several responses (`curl -sIL`) the last one counts.
+It reads incrementally. After a blank line it skips further blank lines and reads
+enough of the next prefix to distinguish `HTTP/` from body content. Once body content
+is identified, it stops without waiting for body EOF; the input buffer may read ahead.
+A header-only stream still needs EOF to rule out another response. With `--strict`
+an invalid value exits with status 1 and the reason.
 Unknown options exit 2 without echoing their values; a closed output pipe exits 1.
 
 ## API

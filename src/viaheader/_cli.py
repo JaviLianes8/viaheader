@@ -11,45 +11,10 @@ from collections.abc import Sequence
 from typing import NoReturn, TextIO
 
 from ._errors import ViaError
+from ._headers import read_headers
+from ._headers import via_lines as via_lines
 from ._model import Hop
 from ._parse import parse
-
-
-def via_lines(block: str) -> list[str]:
-    """The Via field values of the last header block in ``block``, folded lines joined.
-
-    Lines end at LF (a CR before it is dropped), as in HTTP/1.1; other line breaks are
-    data. A blank line ends a header block. A status line (``HTTP/``) after it starts
-    the next response, as in the output of ``curl -sIL``; anything else is a body and
-    is not read.
-    """
-    lines: list[list[str]] = []
-    state = "start"
-    in_via = False
-    for raw in block.split("\n"):
-        raw = raw.removesuffix("\r")
-        if state == "between":
-            if raw == "":
-                continue
-            if not raw.startswith("HTTP/"):
-                break
-            lines, state = [], "header"
-            continue
-        if state == "start":
-            if raw == "":
-                continue
-            state = "header"
-        if raw == "":
-            state, in_via = "between", False
-        elif raw[:1] in (" ", "\t"):
-            if in_via:
-                lines[-1].append(raw.strip(" \t"))
-        else:
-            name, colon, value = raw.partition(":")
-            in_via = bool(colon) and name.lower() == "via"
-            if in_via:
-                lines.append([value.strip(" \t")])
-    return [" ".join(parts) for parts in lines]
 
 
 class _Parser(argparse.ArgumentParser):
@@ -72,11 +37,6 @@ def _as_json(hop: Hop) -> dict[str, object]:
     }
 
 
-def _read_stdin() -> str:
-    # Header bytes map to code points one to one in latin-1 (obs-text stays U+0080-U+00FF).
-    return sys.stdin.buffer.read().decode("latin-1")
-
-
 def main(
     argv: Sequence[str] | None = None,
     stdin: TextIO | None = None,
@@ -97,11 +57,11 @@ def main(
     if args.values:
         lines = list(args.values)
     elif stdin is not None:
-        lines = via_lines(stdin.read())
+        lines = read_headers(stdin)
     elif sys.stdin.isatty():
         parser.error("give VALUE arguments or pipe a header block on stdin")
     else:
-        lines = via_lines(_read_stdin())
+        lines = read_headers(sys.stdin.buffer)
     try:
         hops = parse(lines, strict=args.strict)
     except ViaError as error:

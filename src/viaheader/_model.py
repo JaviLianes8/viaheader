@@ -28,6 +28,11 @@ class Hop:
     comment: str | None = None
 
     def __post_init__(self) -> None:
+        # Validate and serialize the same text even when a str subclass overrides methods.
+        for field in ("received_by", "version", "protocol", "comment"):
+            value = getattr(self, field)
+            if isinstance(value, str):
+                object.__setattr__(self, field, str.__str__(value))
         # Protocol names compare case-insensitively (RFC 9110 section 7.8) and the name is
         # omitted for HTTP, so one spelling keeps equality and round trips exact.
         if isinstance(self.protocol, str) and self.protocol.upper() in ("HTTP", ""):

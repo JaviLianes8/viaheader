@@ -34,11 +34,11 @@ def field_lines(value: str | Iterable[str] | None) -> list[str]:
     if value is None:
         return []
     if isinstance(value, str):
-        return [value]
+        return [str.__str__(value)]
     if isinstance(value, (bytes, bytearray, memoryview)):
         raise TypeError("Via values are str; decode the header bytes as latin-1 first")
     lines = list(value)
     for line in lines:
         if not isinstance(line, str):
             raise TypeError(f"each Via field line must be a str, not {type(line).__name__[:40]}")
-    return lines
+    return [str.__str__(line) for line in lines]

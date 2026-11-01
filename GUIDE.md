@@ -5,6 +5,10 @@
 Import all public names from `viaheader`. The public surface is `Hop`, `ViaError`,
 `parse`, `build`, `append` and `has_loop`. `__version__` is the package version string.
 
+String subclasses are accepted by their underlying text. Hop fields, field lines,
+pseudonyms and proxy names are normalized to built-in strings before processing;
+overridden string methods do not change validation or serialization.
+
 `Hop(received_by, version, protocol="HTTP", comment=None)` is a frozen, hashable
 dataclass. Construction stores the supplied fields without checking syntax;
 `build` and `append` validate before writing. Fields must have their annotated types
@@ -94,7 +98,12 @@ arbitrary Unicode.
 `received_by`, `host`, `port` and `comment`. Arguments are field values, in order.
 Without arguments, stdin is a latin-1 header block: Via fields are matched without
 case, continuations unfold with spaces, and the last HTTP response block wins.
-The first non-status content after a blank line is treated as the body and ignored.
+Input is read incrementally. After a blank line, further blank lines are skipped;
+at most five characters of the next nonblank prefix distinguish `HTTP/` from a body.
+Once a body is identified, reading stops without waiting for body EOF or allocating
+memory for the remaining body. Stream buffers may read ahead. A header-only stream
+still needs EOF to rule out a further response; a body beginning with `HTTP/` is
+interpreted as another response, so this is a header-block reader, not HTTP framing.
 Only LF ends lines; one preceding CR is removed. Output is ASCII-safe JSON.
 
 Exit codes: 0 for success (including an empty list), 1 for strict syntax failure or
@@ -108,6 +117,8 @@ Install with `pip install --upgrade viaheader`. The public names, signatures,
 defaults, parsed values and serialized headers are unchanged. Validation errors
 now avoid echoing the rejected value, and CLI usage errors omit invalid arguments.
 Non-mapping `pseudonyms` now raise `TypeError`, including falsy values.
+String subclasses are processed as their underlying built-in strings. The CLI
+stops on an identified body prefix instead of buffering all stdin through EOF.
 Closed output pipes exit 1 quietly. `Hop` and `ViaError` now report `viaheader` as
 their module; pickles work in both directions with 0.2.0. Code importing private
 modules is outside the public contract. The

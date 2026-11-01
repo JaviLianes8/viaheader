@@ -18,6 +18,14 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- String subclasses in Hop fields, field lines, pseudonyms and proxy names are
+  normalized to built-in strings using their underlying text. Overridden methods
+  can no longer bypass serialization validation, crash strict scanning or disclose
+  whole field values in invalid-character errors. Hop construction still defers
+  syntax validation until `build` or `append`.
+- The CLI reads stdin incrementally and stops when it identifies a body prefix,
+  without waiting for body EOF or buffering the remaining body. Successive response
+  blocks still select the last response; header-only input still requires EOF.
 - Invalid protocol, version, received-by, pseudonym and proxy-name errors no longer
   echo the rejected input. Wrong Hop/proxy-name type errors omit the type name;
   a field-line type name is limited to 40 characters. Error classes are unchanged.
