@@ -9,12 +9,12 @@ Progress:
 - [x] Stable API, exact exports, runnable examples, typing and errors (items 1 to 5)
 - [x] Contracts, fetched ground truth, seeded properties and mutations (items 6, 7, 9, 18)
 - [x] Wheel installation, CLI, PyPI upgrade and distribution inspection (items 8, 13, 14)
-- [ ] Final interpreter matrix (item 10)
+- [x] Final interpreter matrix (item 10): eight installed-wheel environments
 - [x] README, GUIDE, dated CHANGELOG and rendering check (items 11, 12)
 - [x] Four gates, plus strict typing of tests (item 15)
 - [ ] Independent reviewer (item 16)
 - [ ] Five independent QA lenses (item 19)
-- [ ] PR and guard; merge and publication remain pending (item 17)
+- [x] PR #3 and guard CLEAN; merge and publication remain pending (item 17)
 
 ## Scorecard
 
@@ -29,14 +29,14 @@ Progress:
 | 7 | PASS: four sources fetched live, hashed and used to derive examples and grammar checks |
 | 8 | PASS: fresh wheel installation, both CLI entry points, real pipe, in-place PyPI upgrade |
 | 9 | PASS: four seeded properties, bounded grammar oracle, hostile-size and nesting tests |
-| 10 | PENDING: final installed-wheel matrix in progress |
+| 10 | PASS: Python 3.10 through 3.14, eight installed builds including free-threaded 3.14 |
 | 11 | PASS: problem, verified alternatives, absolute links, exact badge, strict twine check |
 | 12 | PASS: `1.0.0` CHANGELOG dated 2026-11-01 |
 | 13 | PASS: version 1.0.0, Production/Stable, Python 3.10 to 3.14, MIT, URLs, no runtime dependencies |
 | 14 | PASS: wheel and sdist inspected; license and types present, no fetched text or scratch files |
 | 15 | PASS: four commands each exit 0 independently; full opt-in suite has no skips |
 | 16 | PENDING: independent review has not run |
-| 17 | PENDING: PR and guard at handoff; merge and publication are separate |
+| 17 | READY: PR #3 from `release/1.0.0`, guard CLEAN; merge and publication pending |
 | 18 | PASS: 28 deliberate mutations, 28 killed, no survivors |
 | 19 | PENDING: no lens verdicts recorded |
 
@@ -112,6 +112,30 @@ Both artifacts pass `twine check --strict`. SHA-256:
 - Wheel: `8e501d81a9c594f2221c597695dd76219e1b52485c4c7cf0fede692767c4503e`
 - Sdist: `c402de4d11b0d58562913dc49b6a66786db7ed5ad8fc668c4c6f4c0c79d637c7`
 
+## Supported interpreters
+
+The final wheel and sdist match the source and tests at e08eef5. Each interpreter
+uses a fresh venv with the wheel installed, runs the sdist's suite with `src` absent
+and `pythonpath` empty, verifies imports come from site-packages, and drives the
+console command by subprocess. Fetched references are present. The two opt-in
+build/upgrade tests are skipped here because they ran separately above.
+
+| Interpreter | Result |
+| --- | --- |
+| CPython 3.10.22 | 271 passed, 2 skipped |
+| CPython 3.11.11 (Blender) | 271 passed, 2 skipped |
+| CPython 3.11.18 | 271 passed, 2 skipped |
+| CPython 3.12.16 | 271 passed, 2 skipped |
+| CPython 3.13.18 | 271 passed, 2 skipped |
+| CPython 3.14.6 (system) | 271 passed, 2 skipped |
+| CPython 3.14.10 | 271 passed, 2 skipped |
+| CPython 3.14.10 free-threaded | 271 passed, 2 skipped |
+
+No supported minor version was unavailable. Stale launcher entries for 3.10.19,
+3.11.5/14/17, 3.12.12/15, 3.13.2/16 and 3.14.2/8 (including free-threaded builds)
+point to missing executables and could not run; the working builds above were
+discovered on disk. Duplicate paths to the same runtime were resolved once.
+
 ## Author mutation round
 
 Each mutation was applied alone in an isolated copy with bytecode writes disabled,
@@ -158,3 +182,6 @@ Each command ran independently and exited 0: `ruff format --check .`, `ruff chec
 The full pytest result above includes fetched sources, built-wheel checks and PyPI
 upgrade. Independent review (16), merge/publication (17) and five fresh QA lenses
 (19) remain pending; no pass verdict is claimed for those stages.
+
+PR: https://github.com/JaviLianes8/viaheader/pull/3, titled `viaheader 1.0.0`,
+from `release/1.0.0` to `main`. The guard reports `CLEAN: viaheader #3`.
