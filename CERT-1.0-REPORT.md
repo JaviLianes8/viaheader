@@ -196,7 +196,7 @@ review; no pre-existing mutation workspace was moved, reset, deleted or reused.
 ## QA lenses: round 2 corrections
 
 Reviewed head: `c33100372732668d8c43dbf43bdc22717cd4c6e5`.
-Fix commit: recorded after committing this correction.
+Fix commit: [`87b79ead6b0e8c52952b0f835d646eab7babeb65`](https://github.com/JaviLianes8/viaheader/commit/87b79ead6b0e8c52952b0f835d646eab7babeb65).
 Report: `lens-e-r2/REPORT.md` under the certification scratch root.
 The independent verdict was FAIL because its clone destination was already occupied;
 it ran no tests or mutations. Independent same-lens re-verification remains pending.
