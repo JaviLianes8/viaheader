@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import io
 import json
 import sys
@@ -55,6 +56,8 @@ class _Parser(argparse.ArgumentParser):
     def error(self, message: str) -> NoReturn:
         if message.startswith("unrecognized arguments:"):
             message = "unrecognized arguments"
+        elif message.startswith("argument "):
+            message = "option does not accept a value"
         super().error(message)
 
 
@@ -108,7 +111,12 @@ def main(
         json.dump([_as_json(hop) for hop in hops], out, indent=2)
         out.write("\n")
         out.flush()
-    except BrokenPipeError:
+    except OSError as error:
+        # Windows reports a closed anonymous pipe as EINVAL rather than EPIPE.
+        if not isinstance(error, BrokenPipeError) and not (
+            sys.platform == "win32" and error.errno == errno.EINVAL
+        ):
+            raise
         # Prevent the interpreter's final flush from retrying a closed stdout pipe.
         if out is sys.stdout:
             sys.stdout = io.StringIO()

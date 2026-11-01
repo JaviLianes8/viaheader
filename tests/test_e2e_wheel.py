@@ -7,13 +7,18 @@ from __future__ import annotations
 
 import json
 import os
+import pickle
 import subprocess
 import sys
+import tarfile
 import venv
 import zipfile
+from email.parser import BytesParser
 from pathlib import Path
 
 import pytest
+
+from viaheader import Hop, ViaError
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -59,23 +64,42 @@ def _run(
     *cmd: str | Path, cwd: Path | None = None, stdin: bytes = b""
 ) -> subprocess.CompletedProcess[bytes]:
     return subprocess.run(
-        [str(c) for c in cmd], cwd=cwd, input=stdin, capture_output=True, check=False
+        [str(c) for c in cmd], cwd=cwd, input=stdin, capture_output=True, check=False, timeout=240
     )
 
 
-def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
-    dist = tmp_path / "dist"
+@pytest.fixture(scope="module")
+def distributions(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
+    dist = tmp_path_factory.mktemp("distributions")
     built = _run(sys.executable, "-m", "build", "--outdir", dist, ROOT)
     assert built.returncode == 0, built.stderr
     (wheel,) = dist.glob("viaheader-*.whl")
     (sdist,) = dist.glob("viaheader-*.tar.gz")
-    names = zipfile.ZipFile(wheel).namelist()
+    return wheel, sdist
+
+
+def test_installed_wheel_end_to_end(tmp_path: Path, distributions: tuple[Path, Path]) -> None:
+    wheel, sdist = distributions
+    with zipfile.ZipFile(wheel) as archive:
+        names = archive.namelist()
+        metadata = BytesParser().parsebytes(archive.read("viaheader-1.0.0.dist-info/METADATA"))
+        assert metadata["Version"] == "1.0.0"
+        assert metadata["Requires-Python"] == ">=3.10"
+        assert "Development Status :: 5 - Production/Stable" in metadata.get_all("Classifier", [])
+        assert all("extra == 'dev'" in r for r in metadata.get_all("Requires-Dist", []))
+        assert "Source, https://github.com/JaviLianes8/viaheader" in metadata.get_all(
+            "Project-URL", []
+        )
     assert "viaheader/py.typed" in names
     assert "viaheader/__main__.py" in names
+    assert "viaheader-1.0.0.dist-info/licenses/LICENSE" in names
     assert not any(name.startswith(("tests/", "scripts/", "scratchpad/")) for name in names)
-    listing = _run(sys.executable, "-m", "tarfile", "-l", sdist).stdout.decode()
+    with tarfile.open(sdist) as archive:
+        listing = "\n".join(archive.getnames())
     assert "IMPROVEMENTS-round" not in listing
+    assert "CERT-" not in listing
     assert "scratchpad" not in listing
+    assert "/LICENSE" in listing and "/GUIDE.md" in listing
     assert "tests/upstream/MANIFEST.json" in listing
     for fetched in ("rfc9110.txt", "rfc9112.txt", "rfc3986.txt", "mdn-via.md"):
         assert fetched not in listing, fetched
@@ -104,3 +128,67 @@ def test_installed_wheel_end_to_end(tmp_path: Path) -> None:
     rejected = _run(bindir / "viaheader", "--strict", "1.1 a (", cwd=work)
     assert rejected.returncode == 1
     assert b"unterminated comment" in rejected.stderr
+    with subprocess.Popen(
+        [str(python), "-I", "-m", "viaheader"],
+        cwd=work,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as process:
+        assert process.stdout is not None and process.stdin is not None
+        assert process.stderr is not None
+        process.stdout.close()
+        process.stdin.write(block)
+        process.stdin.close()
+        error = process.stderr.read()
+        assert process.wait(timeout=30) == 1, error
+        assert not error
+
+
+@pytest.mark.skipif(os.environ.get("VIAHEADER_E2E_PYPI") != "1", reason="opt-in PyPI upgrade")
+def test_pypi_upgrade_and_pickle_compatibility(
+    tmp_path: Path, distributions: tuple[Path, Path]
+) -> None:
+    wheel, _ = distributions
+    venv.create(tmp_path / "env", with_pip=True)
+    bindir = tmp_path / "env" / ("Scripts" if sys.platform == "win32" else "bin")
+    python = bindir / "python"
+    installed = _run(python, "-m", "pip", "install", "--no-deps", "viaheader==0.2.0")
+    assert installed.returncode == 0, installed.stderr
+    baseline = _run(python, "-I", "-c", PROGRAM, cwd=tmp_path)
+    assert baseline.returncode == 0, baseline.stderr
+    snapshot = Path(__file__).with_name("upgrade_snapshot.py")
+    old = _run(python, "-I", snapshot, cwd=tmp_path)
+    assert old.returncode == 0, old.stderr
+    old_pickle = _run(
+        python,
+        "-I",
+        "-c",
+        "import pickle,sys; from viaheader import Hop,ViaError; "
+        "sys.stdout.buffer.write(pickle.dumps((Hop('edge','2'),ViaError('bad',line=1,position=2))))",
+        cwd=tmp_path,
+    )
+    assert old_pickle.returncode == 0, old_pickle.stderr
+    hop, error = pickle.loads(old_pickle.stdout)
+    assert hop == Hop("edge", "2") and isinstance(error, ViaError)
+    assert (error.line, error.position) == (1, 2)
+    reverse = _run(
+        python,
+        "-I",
+        "-c",
+        "import pickle,sys; from viaheader import Hop,ViaError; "
+        "h,e=pickle.loads(sys.stdin.buffer.read()); assert h==Hop('edge','2'); "
+        "assert isinstance(e,ViaError) and (e.line,e.position)==(1,2)",
+        cwd=tmp_path,
+        stdin=pickle.dumps((Hop("edge", "2"), ViaError("bad", line=1, position=2))),
+    )
+    assert reverse.returncode == 0, reverse.stderr
+    upgraded = _run(python, "-m", "pip", "install", "--no-deps", "--upgrade", wheel)
+    assert upgraded.returncode == 0, upgraded.stderr
+    new = _run(python, "-I", snapshot, cwd=tmp_path)
+    assert new.returncode == 0, new.stderr
+    assert json.loads(old.stdout) == json.loads(new.stdout)
+    result = _run(python, "-I", "-c", PROGRAM, cwd=tmp_path)
+    assert result.returncode == 0, result.stderr
+    cli = _run(bindir / "viaheader", "--strict", "1.1 edge", cwd=tmp_path)
+    assert cli.returncode == 0 and json.loads(cli.stdout)[0]["host"] == "edge"

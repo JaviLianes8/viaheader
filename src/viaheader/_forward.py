@@ -51,6 +51,8 @@ def append(
 
 
 def _renames(pseudonyms: Mapping[str, str] | None) -> dict[str, str]:
+    if pseudonyms is not None and not isinstance(pseudonyms, Mapping):
+        raise TypeError("pseudonyms must be a mapping of str hosts to str pseudonyms")
     renames: dict[str, str] = {}
     for host, pseudonym in (pseudonyms or {}).items():
         if not isinstance(host, str) or not isinstance(pseudonym, str):

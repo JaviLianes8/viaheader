@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import io
 import sys
 from collections.abc import Callable
@@ -55,6 +56,12 @@ def test_wrong_types_do_not_invoke_their_representation() -> None:
         has_loop(None, value)  # type: ignore[arg-type]
 
 
+@pytest.mark.parametrize("value", [0, False, "", "p", [], [("p", "fw")]])
+def test_pseudonyms_requires_a_mapping(value: object) -> None:
+    with pytest.raises(TypeError, match="mapping"):
+        append(None, Hop("me", "1"), pseudonyms=value)  # type: ignore[arg-type]
+
+
 def test_unknown_options_are_not_echoed(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as caught:
         main(["--private-value" + "x" * 100_000])
@@ -62,6 +69,18 @@ def test_unknown_options_are_not_echoed(capsys: pytest.CaptureFixture[str]) -> N
     error = capsys.readouterr().err
     assert "private-value" not in error and len(error) < 300
     assert "unrecognized arguments" in error
+
+
+@pytest.mark.parametrize("option", ["--strict", "--help", "-h"])
+def test_unexpected_option_values_are_not_echoed(
+    option: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as caught:
+        main([option + "=private-value" + "x" * 100_000])
+    assert caught.value.code == 2
+    error = capsys.readouterr().err
+    assert "private-value" not in error and len(error) < 300
+    assert "does not accept a value" in error
 
 
 def test_closed_output_returns_one_without_a_traceback(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -72,6 +91,16 @@ def test_closed_output_returns_one_without_a_traceback(monkeypatch: pytest.Monke
     monkeypatch.setattr(sys, "stdout", Closed())
     assert main(["1 p"]) == 1
     sys.stdout.flush()
+
+
+def test_other_output_errors_propagate() -> None:
+    class Failed(io.StringIO):
+        def flush(self) -> None:
+            raise OSError(errno.ENOSPC, "storage full")
+
+    with pytest.raises(OSError) as caught:
+        main(["1 p"], stdout=Failed())
+    assert caught.value.errno == errno.ENOSPC
 
 
 def test_folded_header_values_keep_all_fragments() -> None:

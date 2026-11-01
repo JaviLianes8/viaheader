@@ -106,7 +106,8 @@ beginning with a hyphen.
 
 Install with `pip install --upgrade viaheader`. The public names, signatures,
 defaults, parsed values and serialized headers are unchanged. Validation errors
-now avoid echoing the rejected value, and CLI usage errors omit unknown arguments.
+now avoid echoing the rejected value, and CLI usage errors omit invalid arguments.
+Non-mapping `pseudonyms` now raise `TypeError`, including falsy values.
 Closed output pipes exit 1 quietly. `Hop` and `ViaError` now report `viaheader` as
 their module; pickles work in both directions with 0.2.0. Code importing private
 modules is outside the public contract. The

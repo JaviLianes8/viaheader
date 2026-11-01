@@ -21,10 +21,13 @@ All notable changes to this project are documented here. The format follows
 - Invalid protocol, version, received-by, pseudonym and proxy-name errors no longer
   echo the rejected input. Wrong Hop/proxy-name type errors omit the type name;
   a field-line type name is limited to 40 characters. Error classes are unchanged.
+- `append` rejects non-mapping `pseudonyms` with `TypeError`; 0.2.0 silently ignored
+  falsy non-mappings and raised `AttributeError` for other non-mappings.
 - `Hop` and `ViaError` identify their defining module as `viaheader`. Old pickles
   remain readable, and new pickles can still be read by 0.2.0.
 - The incidental `annotations` module attribute is removed; `__all__` is unchanged.
-- The CLI omits unknown argument values from usage errors and exits 1 quietly when
+- The CLI omits unknown arguments and unexpected option values from usage errors
+  and exits 1 quietly when
   its output pipe closes, including when the failure occurs during flushing.
 - Loop detection indexes the requested names, and CLI line unfolding joins fragments
   once, avoiding quadratic work with many names or continuation lines.
