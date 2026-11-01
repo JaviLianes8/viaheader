@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import errno
+import io
 import json
 import sys
 from collections.abc import Sequence
-from typing import TextIO
+from typing import NoReturn, TextIO
 
 from ._errors import ViaError
 from ._model import Hop
@@ -21,7 +23,7 @@ def via_lines(block: str) -> list[str]:
     the next response, as in the output of ``curl -sIL``; anything else is a body and
     is not read.
     """
-    lines: list[str] = []
+    lines: list[list[str]] = []
     state = "start"
     in_via = False
     for raw in block.split("\n"):
@@ -41,13 +43,22 @@ def via_lines(block: str) -> list[str]:
             state, in_via = "between", False
         elif raw[:1] in (" ", "\t"):
             if in_via:
-                lines[-1] += " " + raw.strip(" \t")
+                lines[-1].append(raw.strip(" \t"))
         else:
             name, colon, value = raw.partition(":")
             in_via = bool(colon) and name.lower() == "via"
             if in_via:
-                lines.append(value.strip(" \t"))
-    return lines
+                lines.append([value.strip(" \t")])
+    return [" ".join(parts) for parts in lines]
+
+
+class _Parser(argparse.ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        if message.startswith("unrecognized arguments:"):
+            message = "unrecognized arguments"
+        elif message.startswith("argument "):
+            message = "option does not accept a value"
+        super().error(message)
 
 
 def _as_json(hop: Hop) -> dict[str, object]:
@@ -73,7 +84,7 @@ def main(
     stderr: TextIO | None = None,
 ) -> int:
     """Run the command line; returns the exit status (1 when strict parsing fails)."""
-    parser = argparse.ArgumentParser(
+    parser = _Parser(
         prog="viaheader",
         description="Print the hops of HTTP Via values as JSON. Without VALUE arguments, "
         "read a header block (for example the output of curl -sI) and use its Via lines.",
@@ -96,6 +107,18 @@ def main(
     except ViaError as error:
         print(f"viaheader: {error}", file=err)
         return 1
-    json.dump([_as_json(hop) for hop in hops], out, indent=2)
-    out.write("\n")
+    try:
+        json.dump([_as_json(hop) for hop in hops], out, indent=2)
+        out.write("\n")
+        out.flush()
+    except OSError as error:
+        # Windows reports a closed anonymous pipe as EINVAL rather than EPIPE.
+        if not isinstance(error, BrokenPipeError) and not (
+            sys.platform == "win32" and error.errno == errno.EINVAL
+        ):
+            raise
+        # Prevent the interpreter's final flush from retrying a closed stdout pipe.
+        if out is sys.stdout:
+            sys.stdout = io.StringIO()
+        return 1
     return 0

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib.resources
 
 import viaheader
@@ -9,6 +11,9 @@ PUBLIC_API: list[str] = ["Hop", "ViaError", "append", "build", "has_loop", "pars
 
 def test_all_lists_exactly_the_public_api() -> None:
     assert sorted(viaheader.__all__) == sorted(PUBLIC_API)
+    assert sorted(name for name in vars(viaheader) if not name.startswith("_")) == sorted(
+        PUBLIC_API
+    )
 
 
 def test_every_exported_name_resolves() -> None:

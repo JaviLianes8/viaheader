@@ -13,6 +13,13 @@ class Hop:
     the protocol name, ``HTTP`` when the entry gives only a version; any spelling of
     ``HTTP``, and the empty string, are stored as ``HTTP``. ``comment`` is the decoded
     comment text (quoted-pairs resolved, nested parentheses kept) or ``None``.
+
+    Construction stores fields without validating their syntax; ``build`` and
+    ``append`` validate before writing. Instances are immutable and hashable.
+
+    >>> from viaheader import Hop
+    >>> Hop("edge:443", "1.1", "http") == Hop("edge:443", "1.1")
+    True
     """
 
     received_by: str
@@ -28,7 +35,12 @@ class Hop:
 
     @property
     def host(self) -> str:
-        """The received-by without its port."""
+        """The received-by without its port.
+
+        >>> from viaheader import Hop
+        >>> Hop("edge:443", "1.1").host
+        'edge'
+        """
         if self.received_by.startswith("["):
             literal, bracket, _ = self.received_by.partition("]")
             return literal + bracket
@@ -36,7 +48,14 @@ class Hop:
 
     @property
     def port(self) -> int | None:
-        """The port of the received-by, or ``None`` when it has none or it exceeds 65535."""
+        """The port, or ``None`` when absent, empty, malformed or above 65535.
+
+        >>> from viaheader import Hop
+        >>> Hop("edge:00443", "1.1").port
+        443
+        >>> Hop("edge:65536", "1.1").port is None
+        True
+        """
         rest = self.received_by[len(self.host) :]
         digits = rest[1:] if rest.startswith(":") else ""
         if not (digits.isascii() and digits.isdigit()):

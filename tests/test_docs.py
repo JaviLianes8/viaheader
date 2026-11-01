@@ -6,6 +6,7 @@ import contextlib
 import io
 import itertools
 import re
+from email.message import Message
 from pathlib import Path
 
 import viaheader
@@ -89,3 +90,26 @@ def test_no_em_dash_anywhere_in_the_tree() -> None:
 def test_source_files_stay_under_two_hundred_lines() -> None:
     for path in [*ROOT.joinpath("src").rglob("*.py"), *ROOT.joinpath("tests").rglob("*.py")]:
         assert len(path.read_text(encoding="utf-8").splitlines()) <= 200, path
+
+
+def test_guide_examples_run() -> None:
+    guide = (ROOT / "GUIDE.md").read_text(encoding="utf-8")
+    blocks = re.findall(r"```python\n(.*?)```", guide, re.DOTALL)
+    assert blocks
+    for block in blocks:
+        exec(compile(block, "GUIDE.md", "exec"), {"__name__": "guide"})
+
+
+def test_readme_links_are_absolute() -> None:
+    for url in re.findall(r"\]\(([^)]+)\)", README):
+        assert url.startswith("https://"), url
+
+
+def test_readme_comparison_with_split_and_email() -> None:
+    message = Message()
+    value = "1.1 p (one, two)"
+    message["Via"] = value
+    message["via"] = "2 edge"
+    assert message.get_all("Via") == ["1.1 p (one, two)", "2 edge"]
+    assert len(value.split(",")) == 2
+    assert len(viaheader.parse(message.get_all("Via"))) == 2

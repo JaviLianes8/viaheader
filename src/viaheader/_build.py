@@ -16,6 +16,10 @@ def build(hops: Iterable[Hop]) -> str:
     Raises ``ViaError`` for a protocol, version or received-by that is not valid RFC 9110
     syntax and for a comment holding characters a field value cannot carry. Comments are
     escaped as needed, so ``parse(build(hops)) == hops``.
+
+    >>> from viaheader import Hop, build
+    >>> build([Hop("edge", "1.1", comment="cache")])
+    '1.1 edge (cache)'
     """
     return ", ".join(render(hop, legacy=False) for hop in hops)
 
@@ -23,20 +27,20 @@ def build(hops: Iterable[Hop]) -> str:
 def render(hop: Hop, *, legacy: bool) -> str:
     """One entry; ``legacy`` also accepts the bracketed IPv6 received-by of RFC 7230."""
     if not isinstance(hop, Hop):
-        raise TypeError(f"expected a Hop, not {type(hop).__name__}")
+        raise TypeError("expected a Hop")
     for field in ("received_by", "version", "protocol"):
         if not isinstance(getattr(hop, field), str):
             raise TypeError(f"Hop.{field} must be a str")
     if not is_token(hop.version):
-        raise ViaError(f"protocol version {hop.version!r} is not a token")
+        raise ViaError("protocol version is not a token")
     if hop.protocol == "HTTP":
         parts = [hop.version]
     elif is_token(hop.protocol):
         parts = [f"{hop.protocol}/{hop.version}"]
     else:
-        raise ViaError(f"protocol name {hop.protocol!r} is not a token")
+        raise ViaError("protocol name is not a token")
     if not valid_received_by(hop.received_by, legacy=legacy):
-        raise ViaError(f"received-by {hop.received_by!r} is not a token with an optional port")
+        raise ViaError("received-by is not a token with an optional port")
     parts.append(hop.received_by)
     if hop.comment is not None:
         parts.append(escape_comment(hop.comment))

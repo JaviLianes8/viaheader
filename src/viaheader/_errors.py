@@ -8,9 +8,21 @@ class ViaError(ValueError):
 
     ``line`` is the index of the field line and ``position`` the offset inside it where
     parsing failed; both are ``None`` for errors raised while building.
+
+    >>> from viaheader import ViaError, parse
+    >>> try:
+    ...     parse("1.1", strict=True)
+    ... except ViaError as error:
+    ...     print(error.line, error.position, isinstance(error, ValueError))
+    0 3 True
     """
 
-    def __init__(self, message: str, *, line: int | None = None, position: int | None = None):
+    line: int | None
+    position: int | None
+
+    def __init__(
+        self, message: str, *, line: int | None = None, position: int | None = None
+    ) -> None:
         if position is not None:
             message = f"{message} (line {line}, offset {position})"
         super().__init__(message)
